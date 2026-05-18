@@ -1,0 +1,415 @@
+[
+  {
+    "id": "stockRetailExchangeFeeV2Test01",
+    "name": "ERPNext Stock V2 Retail Exchange Fee Test",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erpnext-stock-v2-retail-exchange-fee-test",
+          "responseMode": "lastNode",
+          "responseData": "allEntries",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [-1900, 0],
+        "id": "retail-exchange-fee-webhook",
+        "name": "POST Webhook",
+        "webhookId": "erpnext-stock-v2-retail-exchange-fee-test"
+      },
+      {
+        "parameters": {
+          "jsCode": "const now = new Date();\nconst today = now.toISOString().slice(0, 10);\nconst due = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);\nconst runId = `N8N-STOCK-EXCHANGE-${Date.now()}`;\nreturn [{ json: { runId, company: 'Thái Duy Digital', parentWarehouse: 'All Warehouses - TDD', postingDate: today, dueDate: due, customerName: `${runId} KH đổi sản phẩm`, itemGroup: `${runId} Nhóm đổi hàng`, sellWarehouseName: `${runId} Kho bán đổi`, returnWarehouseName: `${runId} Kho nhập trả đổi`, productA: `${runId} Sản phẩm A khách trả`, productB: `${runId} Sản phẩm B đổi mới`, feeItem: `${runId} Phí đổi trả`, receiptQtyA: 3, receiptQtyB: 3, saleQtyA: 1, returnQtyA: 1, exchangeQtyB: 1, rateA: 120, rateB: 150, feeRate: 15, accounts: { receivable: '1310 - Debtors - TDD', sales: '4110 - Sales - TDD' } } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [-1680, 0],
+        "id": "build-exchange-fee-context",
+        "name": "Build Exchange Fee Context"
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Customer",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer_name: $('Build Exchange Fee Context').first().json.customerName, customer_type: \"Company\", customer_group: \"Individual\", territory: \"Vietnam\" }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1460, 0],
+        "id": "create-exchange-customer",
+        "name": "Create Exchange Customer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "itemGroup",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_group_name: $('Build Exchange Fee Context').first().json.itemGroup, parent_item_group: \"All Item Groups\", is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1240, 0],
+        "id": "create-exchange-item-group",
+        "name": "Create Exchange Item Group",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build Exchange Fee Context').first().json.sellWarehouseName, parent_warehouse: $('Build Exchange Fee Context').first().json.parentWarehouse, company: $('Build Exchange Fee Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1020, 0],
+        "id": "create-exchange-sell-warehouse",
+        "name": "Create Exchange Sell Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build Exchange Fee Context').first().json.returnWarehouseName, parent_warehouse: $('Build Exchange Fee Context').first().json.parentWarehouse, company: $('Build Exchange Fee Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-800, 0],
+        "id": "create-exchange-return-warehouse",
+        "name": "Create Exchange Return Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build Exchange Fee Context').first().json.productA, item_name: $('Build Exchange Fee Context').first().json.productA, item_group: $('Create Exchange Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, valuation_rate: $('Build Exchange Fee Context').first().json.rateA, standard_rate: $('Build Exchange Fee Context').first().json.rateA }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-580, 0],
+        "id": "create-product-a",
+        "name": "Create Product A",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build Exchange Fee Context').first().json.productB, item_name: $('Build Exchange Fee Context').first().json.productB, item_group: $('Create Exchange Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, valuation_rate: $('Build Exchange Fee Context').first().json.rateB, standard_rate: $('Build Exchange Fee Context').first().json.rateB }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-360, 0],
+        "id": "create-product-b",
+        "name": "Create Product B",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build Exchange Fee Context').first().json.feeItem, item_name: $('Build Exchange Fee Context').first().json.feeItem, item_group: $('Create Exchange Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 0, is_purchase_item: 0, is_sales_item: 1, standard_rate: $('Build Exchange Fee Context').first().json.feeRate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-140, 0],
+        "id": "create-exchange-fee-item",
+        "name": "Create Exchange Fee Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $('Build Exchange Fee Context').first().json.company, posting_date: $('Build Exchange Fee Context').first().json.postingDate, items: [{ item_code: $('Create Product A').first().json.name, t_warehouse: $('Create Exchange Sell Warehouse').first().json.name, qty: $('Build Exchange Fee Context').first().json.receiptQtyA, basic_rate: $('Build Exchange Fee Context').first().json.rateA }, { item_code: $('Create Product B').first().json.name, t_warehouse: $('Create Exchange Sell Warehouse').first().json.name, qty: $('Build Exchange Fee Context').first().json.receiptQtyB, basic_rate: $('Build Exchange Fee Context').first().json.rateB }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [80, 0],
+        "id": "create-exchange-receipt",
+        "name": "Create Exchange Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create Exchange Receipt').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [300, 0],
+        "id": "submit-exchange-receipt",
+        "name": "Submit Exchange Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create Exchange Customer').first().json.name, company: $('Build Exchange Fee Context').first().json.company, posting_date: $('Build Exchange Fee Context').first().json.postingDate, due_date: $('Build Exchange Fee Context').first().json.dueDate, update_stock: 1, set_warehouse: $('Create Exchange Sell Warehouse').first().json.name, debit_to: $('Build Exchange Fee Context').first().json.accounts.receivable, items: [{ item_code: $('Create Product A').first().json.name, warehouse: $('Create Exchange Sell Warehouse').first().json.name, qty: $('Build Exchange Fee Context').first().json.saleQtyA, rate: $('Build Exchange Fee Context').first().json.rateA, income_account: $('Build Exchange Fee Context').first().json.accounts.sales }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [520, 0],
+        "id": "create-original-sale-a",
+        "name": "Create Original Sale A",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create Original Sale A').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [740, 0],
+        "id": "submit-original-sale-a",
+        "name": "Submit Original Sale A",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create Exchange Customer').first().json.name, company: $('Build Exchange Fee Context').first().json.company, posting_date: $('Build Exchange Fee Context').first().json.postingDate, due_date: $('Build Exchange Fee Context').first().json.dueDate, update_stock: 1, is_return: 1, return_against: $('Submit Original Sale A').first().json.name, set_warehouse: $('Create Exchange Return Warehouse').first().json.name, debit_to: $('Build Exchange Fee Context').first().json.accounts.receivable, items: [{ item_code: $('Create Product A').first().json.name, warehouse: $('Create Exchange Return Warehouse').first().json.name, qty: -$('Build Exchange Fee Context').first().json.returnQtyA, rate: $('Build Exchange Fee Context').first().json.rateA, income_account: $('Build Exchange Fee Context').first().json.accounts.sales }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [960, 0],
+        "id": "create-return-a-credit-note",
+        "name": "Create Return A Credit Note",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create Return A Credit Note').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [1180, 0],
+        "id": "submit-return-a-credit-note",
+        "name": "Submit Return A Credit Note",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create Exchange Customer').first().json.name, company: $('Build Exchange Fee Context').first().json.company, posting_date: $('Build Exchange Fee Context').first().json.postingDate, due_date: $('Build Exchange Fee Context').first().json.dueDate, update_stock: 0, debit_to: $('Build Exchange Fee Context').first().json.accounts.receivable, items: [{ item_code: $('Create Exchange Fee Item').first().json.name, qty: 1, rate: $('Build Exchange Fee Context').first().json.feeRate, income_account: $('Build Exchange Fee Context').first().json.accounts.sales }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [1400, 0],
+        "id": "create-return-fee-invoice",
+        "name": "Create Return Fee Invoice",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create Return Fee Invoice').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [1620, 0],
+        "id": "submit-return-fee-invoice",
+        "name": "Submit Return Fee Invoice",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create Exchange Customer').first().json.name, company: $('Build Exchange Fee Context').first().json.company, posting_date: $('Build Exchange Fee Context').first().json.postingDate, due_date: $('Build Exchange Fee Context').first().json.dueDate, update_stock: 1, set_warehouse: $('Create Exchange Sell Warehouse').first().json.name, debit_to: $('Build Exchange Fee Context').first().json.accounts.receivable, items: [{ item_code: $('Create Product B').first().json.name, warehouse: $('Create Exchange Sell Warehouse').first().json.name, qty: $('Build Exchange Fee Context').first().json.exchangeQtyB, rate: $('Build Exchange Fee Context').first().json.rateB, income_account: $('Build Exchange Fee Context').first().json.accounts.sales }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [1840, 0],
+        "id": "create-exchange-sale-b",
+        "name": "Create Exchange Sale B",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create Exchange Sale B').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [2060, 0],
+        "id": "submit-exchange-sale-b",
+        "name": "Submit Exchange Sale B",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v2",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,valuation_rate,stock_value",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create Product A').first().json.name }) }}",
+          "limit": 20,
+          "orderBy": "warehouse asc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2280, 0],
+        "id": "verify-product-a-bins",
+        "name": "Verify Product A Bins",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { continueAfterProductABins: true } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [2390, 0],
+        "id": "collapse-product-a-bins",
+        "name": "Collapse Product A Bins"
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v2",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,valuation_rate,stock_value",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create Product B').first().json.name }) }}",
+          "limit": 20,
+          "orderBy": "warehouse asc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2500, 0],
+        "id": "verify-product-b-bins",
+        "name": "Verify Product B Bins",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { continueAfterProductBBins: true } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [2610, 0],
+        "id": "collapse-product-b-bins",
+        "name": "Collapse Product B Bins"
+      },
+      {
+        "parameters": {
+          "resource": "stockLedgerEntry",
+          "apiVersion": "v2",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,qty_after_transaction,voucher_type,voucher_no,is_cancelled",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create Product A').first().json.name }) }}",
+          "limit": 30,
+          "orderBy": "creation asc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2720, 0],
+        "id": "verify-product-a-sle",
+        "name": "Verify Product A SLE",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { continueAfterProductASle: true } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [2830, 0],
+        "id": "collapse-product-a-sle",
+        "name": "Collapse Product A SLE"
+      },
+      {
+        "parameters": {
+          "resource": "stockLedgerEntry",
+          "apiVersion": "v2",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,qty_after_transaction,voucher_type,voucher_no,is_cancelled",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create Product B').first().json.name }) }}",
+          "limit": 30,
+          "orderBy": "creation asc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2940, 0],
+        "id": "verify-product-b-sle",
+        "name": "Verify Product B SLE",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "const ctx = $('Build Exchange Fee Context').first().json;\nconst sellWh = $('Create Exchange Sell Warehouse').first().json.name;\nconst returnWh = $('Create Exchange Return Warehouse').first().json.name;\nconst binsA = $('Verify Product A Bins').all().map(i => i.json);\nconst binsB = $('Verify Product B Bins').all().map(i => i.json);\nconst sleA = $('Verify Product A SLE').all().map(i => i.json);\nconst sleB = $('Verify Product B SLE').all().map(i => i.json);\nconst byWhA = Object.fromEntries(binsA.map(row => [row.warehouse, Number(row.actual_qty)]));\nconst byWhB = Object.fromEntries(binsB.map(row => [row.warehouse, Number(row.actual_qty)]));\nconst saleA = $('Submit Original Sale A').first().json;\nconst creditA = $('Submit Return A Credit Note').first().json;\nconst fee = $('Submit Return Fee Invoice').first().json;\nconst saleB = $('Submit Exchange Sale B').first().json;\nconst saleARows = sleA.filter(row => row.voucher_no === saleA.name);\nconst returnRows = sleA.filter(row => row.voucher_no === creditA.name);\nconst saleBRows = sleB.filter(row => row.voucher_no === saleB.name);\nconst status = Number(saleA.docstatus) === 1 && Number(creditA.docstatus) === 1 && Number(fee.docstatus) === 1 && Number(saleB.docstatus) === 1 && byWhA[sellWh] === ctx.receiptQtyA - ctx.saleQtyA && byWhA[returnWh] === ctx.returnQtyA && byWhB[sellWh] === ctx.receiptQtyB - ctx.exchangeQtyB && saleARows.some(row => Number(row.actual_qty) === -ctx.saleQtyA) && returnRows.some(row => Number(row.actual_qty) === ctx.returnQtyA) && saleBRows.some(row => Number(row.actual_qty) === -ctx.exchangeQtyB);\nconst text = JSON.stringify({ binsA, binsB, sleA, sleB, fee: { name: fee.name, update_stock: fee.update_stock, grand_total: fee.grand_total } });\nconst securityFindings = ['api key', 'api_secret', 'authorization', 'token ', 'password'].filter(term => text.toLowerCase().includes(term));\nreturn [{ json: { status: status && securityFindings.length === 0 ? 'passed' : 'failed', runId: ctx.runId, customer: $('Create Exchange Customer').first().json.name, productA: $('Create Product A').first().json.name, productB: $('Create Product B').first().json.name, feeItem: $('Create Exchange Fee Item').first().json.name, originalSaleInvoice: saleA.name, originalSaleDocstatus: saleA.docstatus, returnCreditNote: creditA.name, returnCreditNoteDocstatus: creditA.docstatus, returnAgainst: creditA.return_against, feeInvoice: fee.name, feeInvoiceDocstatus: fee.docstatus, feeGrandTotal: fee.grand_total, exchangeSaleInvoice: saleB.name, exchangeSaleDocstatus: saleB.docstatus, sellWarehouse: sellWh, returnWarehouse: returnWh, productASellQtyFinal: byWhA[sellWh], productAReturnQtyFinal: byWhA[returnWh], productBSellQtyFinal: byWhB[sellWh], productALedgerRows: sleA.length, productBLedgerRows: sleB.length, productASaleLedgerActualQty: saleARows.map(row => row.actual_qty), productAReturnLedgerActualQty: returnRows.map(row => row.actual_qty), productBExchangeLedgerActualQty: saleBRows.map(row => row.actual_qty), securityFindings } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [3160, 0],
+        "id": "return-safe-exchange-fee-summary",
+        "name": "Return Safe Exchange Fee Summary"
+      }
+    ],
+    "connections": {
+      "POST Webhook": { "main": [[{ "node": "Build Exchange Fee Context", "type": "main", "index": 0 }]] },
+      "Build Exchange Fee Context": { "main": [[{ "node": "Create Exchange Customer", "type": "main", "index": 0 }]] },
+      "Create Exchange Customer": { "main": [[{ "node": "Create Exchange Item Group", "type": "main", "index": 0 }]] },
+      "Create Exchange Item Group": { "main": [[{ "node": "Create Exchange Sell Warehouse", "type": "main", "index": 0 }]] },
+      "Create Exchange Sell Warehouse": { "main": [[{ "node": "Create Exchange Return Warehouse", "type": "main", "index": 0 }]] },
+      "Create Exchange Return Warehouse": { "main": [[{ "node": "Create Product A", "type": "main", "index": 0 }]] },
+      "Create Product A": { "main": [[{ "node": "Create Product B", "type": "main", "index": 0 }]] },
+      "Create Product B": { "main": [[{ "node": "Create Exchange Fee Item", "type": "main", "index": 0 }]] },
+      "Create Exchange Fee Item": { "main": [[{ "node": "Create Exchange Receipt", "type": "main", "index": 0 }]] },
+      "Create Exchange Receipt": { "main": [[{ "node": "Submit Exchange Receipt", "type": "main", "index": 0 }]] },
+      "Submit Exchange Receipt": { "main": [[{ "node": "Create Original Sale A", "type": "main", "index": 0 }]] },
+      "Create Original Sale A": { "main": [[{ "node": "Submit Original Sale A", "type": "main", "index": 0 }]] },
+      "Submit Original Sale A": { "main": [[{ "node": "Create Return A Credit Note", "type": "main", "index": 0 }]] },
+      "Create Return A Credit Note": { "main": [[{ "node": "Submit Return A Credit Note", "type": "main", "index": 0 }]] },
+      "Submit Return A Credit Note": { "main": [[{ "node": "Create Return Fee Invoice", "type": "main", "index": 0 }]] },
+      "Create Return Fee Invoice": { "main": [[{ "node": "Submit Return Fee Invoice", "type": "main", "index": 0 }]] },
+      "Submit Return Fee Invoice": { "main": [[{ "node": "Create Exchange Sale B", "type": "main", "index": 0 }]] },
+      "Create Exchange Sale B": { "main": [[{ "node": "Submit Exchange Sale B", "type": "main", "index": 0 }]] },
+      "Submit Exchange Sale B": { "main": [[{ "node": "Verify Product A Bins", "type": "main", "index": 0 }]] },
+      "Verify Product A Bins": { "main": [[{ "node": "Collapse Product A Bins", "type": "main", "index": 0 }]] },
+      "Collapse Product A Bins": { "main": [[{ "node": "Verify Product B Bins", "type": "main", "index": 0 }]] },
+      "Verify Product B Bins": { "main": [[{ "node": "Collapse Product B Bins", "type": "main", "index": 0 }]] },
+      "Collapse Product B Bins": { "main": [[{ "node": "Verify Product A SLE", "type": "main", "index": 0 }]] },
+      "Verify Product A SLE": { "main": [[{ "node": "Collapse Product A SLE", "type": "main", "index": 0 }]] },
+      "Collapse Product A SLE": { "main": [[{ "node": "Verify Product B SLE", "type": "main", "index": 0 }]] },
+      "Verify Product B SLE": { "main": [[{ "node": "Return Safe Exchange Fee Summary", "type": "main", "index": 0 }]] },
+      "Return Safe Exchange Fee Summary": { "main": [[]] }
+    },
+    "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+    "staticData": null,
+    "pinData": {},
+    "meta": { "templateCredsSetupCompleted": true },
+    "tags": []
+  }
+]
