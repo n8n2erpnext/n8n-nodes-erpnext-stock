@@ -1,29 +1,80 @@
 # n8n-nodes-erpnext-stock
 
-[![Status](https://img.shields.io/badge/status-initial%20build%20passing-171717)](#current-status)
+[![Status](https://img.shields.io/badge/status-live%20workflow%20tested-171717)](#tested-operational-coverage)
 [![Runtime audit](https://img.shields.io/badge/runtime%20audit-0%20vulnerabilities-2E7D5F)](#development)
 [![Node checks](https://img.shields.io/badge/n8n%20node%20lint%20%2B%20build-passing-2E7D5F)](#development)
 [![Package](https://img.shields.io/badge/package-0.1.0-2490EF)](./package.json)
 
 Community n8n node package for ERPNext/Frappe Stock v15-v16.
 
-This package is part of the `n8n2erpnext` ecosystem. It focuses on inventory movement, warehouse balances, batch/serial traceability, and read-only ledger verification.
+This package is part of the `n8n2erpnext` ecosystem. It focuses on real inventory movement, warehouse balances, batch/serial traceability, Bin verification, and Stock Ledger Entry verification.
 
-## Current Status
+## Tested Operational Coverage
 
-Initial package scaffold and local verification are complete. Live ERPNext/n8n workflow testing is still pending.
+Stock is intentionally tested more deeply than Buying and Selling because submitted Stock documents change real inventory balances and ledger rows.
 
-Current verification for `0.1.0`:
+The current live workflow suite validates core Stock, retail, distribution, FMCG/Fresh basics, and Manufacturing basics:
+
+- Core inventory lifecycle: Item Group, parent/child Warehouse, Item, Material Receipt, Material Transfer, Stock Reconciliation, Delivery Note, Bin checks, and Stock Ledger Entry checks.
+- Batch and Serial flows: batch receipt/issue, serial receipt/issue, duplicate protection, and serial reuse failure.
+- Negative inventory protection: over-issue, wrong warehouse, disabled item, missing warehouse, duplicate Batch, and duplicate Serial No.
+- Cross-module integrity: Buying Purchase Receipt/Purchase Invoice lock and Delivery Note cancel blocked by linked Sales Invoice.
+- Retail operations: sale, customer return, warranty warehouse, defective warehouse, repair/virtual workshop movement, disposal, exchange, and non-stock return fee.
+- Manufacturing basics: BOM, Work Order, WIP transfer, Manufacture Stock Entry, Finished Goods stock, and Sales Invoice `update_stock = 1`.
+- FMCG/Fresh basics: batch expiry, batch sale, spoilage/damage issue, vendor claim warehouse movement, claim closure/return-to-supplier style issue, and non-stock fee/rebate invoice with no Stock Ledger Entry.
+
+The scope is operational validation, not enterprise planning. Advanced MRP, capacity planning, workstation scheduling, demand forecasting, dynamic pricing, chain-wide replenishment, and production analytics are intentionally outside this Stock node validation suite.
+
+## Who This Is For
+
+This package is built for teams that run ERPNext Stock and want controlled inventory automations in n8n.
+
+Typical users:
+
+- ERP administrators who maintain ERPNext/Frappe.
+- Warehouse, retail, manufacturing, finance, or operations teams that need reliable stock movement workflows.
+- Integration teams that want repeatable n8n automations without writing custom Frappe client code for every inventory process.
+
+The node is intentionally conservative: it exposes standard Stock document operations, supports Frappe API v1 and v2, keeps Bin and Stock Ledger Entry read-only, and allows controlled fallback access to custom DocTypes and whitelisted Frappe methods.
+
+## Architecture At A Glance
+
+Read workflow from left to right:
 
 ```text
-npm run lint            passed
-npm audit --omit=dev    found 0 vulnerabilities
-npm run build           passed
-npx @n8n/node-cli lint  passed
-npx @n8n/node-cli build passed
+ERPNext / Frappe Stock  <---- API token ---->  n8n ERPNext Stock node  <---- webhook/API ---->  Client / App / Report
 ```
 
-Stock live testing must be stricter than Buying and Selling because submitted Stock documents affect inventory balances and Stock Ledger Entry rows.
+Common read pattern:
+
+```text
+Client
+  -> n8n Webhook
+  -> ERPNext Stock node
+  -> Frappe REST API
+  -> ERPNext Stock DocType
+  -> filtered JSON response
+```
+
+Common inventory lifecycle pattern:
+
+```text
+n8n Webhook / Schedule / App Event
+  -> validation / mapping / approval logic
+  -> ERPNext Stock node
+  -> Item, Warehouse, Stock Entry, Stock Reconciliation, Delivery Note, Batch, Serial No, Bin, or Stock Ledger Entry
+  -> safe summary response or downstream system
+```
+
+Recommended production network pattern:
+
+```text
+Public Client
+  -> HTTPS reverse proxy / VPN / allowlist
+  -> n8n
+  -> private network or internal VPS address
+  -> ERPNext / Frappe site
+```
 
 ## Supported Resources
 
@@ -47,9 +98,26 @@ Stock live testing must be stricter than Buying and Selling because submitted St
 
 `Bin` and `Stock Ledger Entry` are intentionally read-only verification resources. They expose only `Get` and `Get Many`.
 
+`Custom DocType` is used when a Stock workflow crosses into another ERPNext module, such as `BOM`, `Work Order`, `Sales Invoice`, or `Purchase Invoice`.
+
+## Node Identity
+
+All `n8n2erpnext` module nodes use the same ERPNext-style logo shape. Each module changes only the main background color.
+
+| Module | Color | Hex | Reason |
+| --- | --- | --- | --- |
+| Core | ERPNext blue | `#2490EF` | Foundation package, closest to the ERPNext brand color. |
+| HRMS | People green | `#2E7D5F` | Human operations, employees, attendance, leave, payroll. |
+| Accounting | Finance orange-red | `#D94A2B` | Ledger, journals, invoices, financial control. |
+| Buying | Procurement amber | `#C47F00` | Purchase flow, suppliers, RFQs, purchase orders, receipts, spend. |
+| Selling | Commerce teal | `#00A6A6` | Customer-facing pipeline, quotations, sales orders, revenue. |
+| Stock | Frappe black | `#171717` | Warehouses, items, inventory movement; aligned with Frappe black. |
+
+When building another module, copy the HRMS/Accounting SVG structure and change only the main background fill to that module color.
+
 ## Operations
 
-For writable Stock documents:
+For writable Stock doctypes:
 
 - Create
 - Get
@@ -59,7 +127,7 @@ For writable Stock documents:
 - Submit
 - Cancel
 
-For read-only verification documents:
+For read-only verification doctypes:
 
 - Get
 - Get Many
@@ -75,10 +143,16 @@ The node supports both ERPNext/Frappe document API styles:
 - `v1`: `/api/resource/:doctype`
 - `v2`: `/api/v2/document/:doctype`
 
+Use `v1` for broad compatibility. Use `v2` when your ERPNext/Frappe v16 environment is ready for the newer document API behavior.
+
 Submit and cancel use the shared `n8n2erpnext` helper rule:
 
 - Submit fetches the latest document and sends `{ doc }` to `frappe.client.submit`.
 - Cancel fetches the latest document and sends `{ doctype, name }` to `frappe.client.cancel`.
+
+Reference:
+
+- [Frappe REST API](https://docs.frappe.io/framework/user/en/api/rest)
 
 ## Credentials
 
@@ -90,6 +164,23 @@ Create an API key and secret in ERPNext/Frappe, then configure:
 - API Secret
 - Ignore SSL Issues, optional
 
+The node authenticates with:
+
+```http
+Authorization: token api_key:api_secret
+```
+
+Credential fields are marked as password fields where appropriate. Do not expose API keys, API secrets, Authorization headers, tokens, or passwords in webhook responses, logs, README examples, or package artifacts.
+
+### Internal URL With Public Host Header
+
+When n8n and ERPNext run on the same VPS, you can point n8n at the internal ERPNext address and still send the public ERPNext host header:
+
+- Site URL: `http://erpnext.internal:8001`
+- Site Host Header: `erp.example.com`
+
+This avoids public reverse-proxy authentication while still letting ERPNext receive the expected site host.
+
 For the current VPS/LXD test setup:
 
 ```text
@@ -99,52 +190,13 @@ Site Host Header: erp.thaiduy.digital
 
 This is infrastructure routing information for the project test environment, not credential material. API keys and API secrets are not included in this README.
 
-## Stock Test Plan
+For production, create a dedicated ERPNext integration user instead of using a daily admin account. Give that user only the roles required for the workflows it runs.
 
-Core live-test flow:
+Official Frappe references:
 
-```text
-Item Group
-  -> parent Warehouse
-  -> child Warehouses
-  -> Item with Vietnamese text, spaces, and special characters
-  -> Stock Entry: Material Receipt
-  -> verify Bin and Stock Ledger Entry
-  -> Stock Entry: Material Transfer
-  -> verify source and target Warehouse balances
-  -> Stock Reconciliation
-  -> verify adjusted quantity and valuation
-```
-
-Mandatory lifecycle coverage:
-
-- Warehouse with parent warehouse.
-- Stock Entry submit and cancel.
-- Material Receipt increases `Bin.actual_qty`.
-- Material Transfer decreases source warehouse and increases target warehouse.
-- Stock Reconciliation adjusts quantity and valuation.
-- Delivery Note reduces stock.
-- Batch item: create batch, receive by batch, issue the correct batch.
-- Serial No item: receive serial numbers, issue serial numbers, and verify reuse fails.
-
-Mandatory negative coverage:
-
-- Issue more than available stock.
-- Use a wrong warehouse.
-- Use a disabled item.
-- Submit Stock Entry with missing warehouse.
-- Cancel Delivery Note after it has a linked submitted invoice.
-- Create duplicate Batch or Serial No.
-
-Database verification should record:
-
-- `Bin.actual_qty`
-- `Stock Ledger Entry.actual_qty`
-- `Stock Ledger Entry.qty_after_transaction`
-- `Stock Entry.docstatus`
-- `Delivery Note.docstatus`
-
-Public webhook responses for write-heavy tests must be allowlisted summaries and must not expose API keys, API secrets, Authorization headers, tokens, passwords, or raw upstream credential material.
+- [Frappe REST API authentication](https://docs.frappe.io/framework/user/en/api/rest)
+- [Frappe token based authentication](https://docs.frappe.io/framework/v15/user/en/guides/integration/rest_api/token_based_authentication)
+- [Generate Frappe API key and secret](https://docs.frappe.io/framework/v15/user/en/guides/integration/how_to_setup_token_based_auth)
 
 ## Examples
 
@@ -158,7 +210,7 @@ Get current Bin quantity for an Item/Warehouse:
   "fields": "name,item_code,warehouse,actual_qty,projected_qty,valuation_rate,stock_value",
   "filtersJson": {
     "item_code": "N8N-STOCK-ITEM-001",
-    "warehouse": "N8N Target Warehouse - TD"
+    "warehouse": "N8N Target Warehouse - TDD"
   },
   "returnAll": false,
   "limit": 20,
@@ -166,17 +218,17 @@ Get current Bin quantity for an Item/Warehouse:
 }
 ```
 
-Get Stock Ledger Entries for a Stock Entry voucher:
+Get Stock Ledger Entries for a voucher:
 
 ```json
 {
   "resource": "stockLedgerEntry",
   "operation": "getMany",
   "apiVersion": "v1",
-  "fields": "name,item_code,warehouse,voucher_type,voucher_no,actual_qty,qty_after_transaction,valuation_rate,stock_value",
+  "fields": "name,item_code,warehouse,voucher_type,voucher_no,actual_qty,qty_after_transaction,serial_and_batch_bundle",
   "filtersJson": {
     "voucher_type": "Stock Entry",
-    "voucher_no": "MAT-STE-2026-00001"
+    "voucher_no": "MAT-STE-2026-00058"
   },
   "returnAll": false,
   "limit": 20,
@@ -197,7 +249,7 @@ Create a Material Receipt Stock Entry:
     "items": [
       {
         "item_code": "N8N-STOCK-ITEM-001",
-        "t_warehouse": "N8N Target Warehouse - TD",
+        "t_warehouse": "N8N Target Warehouse - TDD",
         "qty": 10,
         "basic_rate": 25
       }
@@ -213,22 +265,93 @@ Then submit it with:
   "resource": "stockEntry",
   "operation": "submit",
   "apiVersion": "v2",
-  "documentName": "MAT-STE-2026-00001"
+  "documentName": "MAT-STE-2026-00058"
 }
 ```
 
-## Node Identity
+Use `Custom DocType` for manufacturing-adjacent documents:
 
-All `n8n2erpnext` module nodes use the same ERPNext-style logo shape. Each module changes only the main background color.
+```json
+{
+  "resource": "customDocType",
+  "customDocType": "Work Order",
+  "operation": "get",
+  "apiVersion": "v2",
+  "documentName": "MFG-WO-2026-00002"
+}
+```
 
-| Module | Color | Hex | Reason |
-| --- | --- | --- | --- |
-| Core | ERPNext blue | `#2490EF` | Foundation package, closest to the ERPNext brand color. |
-| HRMS | People green | `#2E7D5F` | Human operations, employees, attendance, leave, payroll. |
-| Accounting | Finance orange-red | `#D94A2B` | Ledger, journals, invoices, financial control. |
-| Buying | Procurement amber | `#C47F00` | Purchase flow, suppliers, RFQs, purchase orders, receipts, spend. |
-| Selling | Commerce teal | `#00A6A6` | Customer-facing pipeline, quotations, sales orders, revenue. |
-| Stock | Frappe black | `#171717` | Warehouses, items, inventory movement; aligned with Frappe black. |
+Run a whitelisted Frappe method:
+
+```json
+{
+  "resource": "frappeMethod",
+  "operation": "runMethod",
+  "methodName": "frappe.client.get_value",
+  "argumentsJson": {
+    "doctype": "Bin",
+    "filters": {
+      "item_code": "N8N-STOCK-ITEM-001",
+      "warehouse": "N8N Target Warehouse - TDD"
+    },
+    "fieldname": ["name", "actual_qty", "stock_value"]
+  }
+}
+```
+
+## Live Workflow Artifacts
+
+The repository includes importable n8n workflow JSON artifacts used for live validation. They are inactive in the repository by default.
+
+- `n8n-webhook-erpnext-stock-get-warehouses.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-inventory-lifecycle-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-reconciliation-cancel-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-delivery-note-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-batch-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-serial-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-negative-cases-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-linked-invoice-dn-cancel-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-buying-receipt-invoice-lock-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-repack-manufacturing-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-retail-return-warranty-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-retail-exchange-fee-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-manufacturing-basic-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-fmcg-fresh-basic-test.workflow.json`
+
+Public webhook responses for write-heavy tests must be allowlisted summaries and must not expose API keys, API secrets, Authorization headers, tokens, passwords, or raw upstream credential material.
+
+## Verification Fields
+
+Database verification for Stock workflows should record:
+
+- `Bin.actual_qty`
+- `Stock Ledger Entry.actual_qty`
+- `Stock Ledger Entry.qty_after_transaction`
+- `Stock Ledger Entry.serial_and_batch_bundle`
+- `Serial and Batch Entry.batch_no`
+- `Stock Entry.docstatus`
+- `Delivery Note.docstatus`
+- `Sales Invoice.docstatus`
+- `Sales Invoice.update_stock`
+- `Work Order.status`
+- `Work Order.produced_qty`
+
+## Documentation Roadmap
+
+The Stock README should stay readable as coverage grows. Future operational detail should move into:
+
+- `TESTING.md`
+- `WORKFLOWS.md`
+- `docs/retail.md`
+- `docs/manufacturing-basic.md`
+- `docs/fmcg-fresh.md`
+- `docs/coverage-matrix.md`
+
+Recommended positioning:
+
+```text
+ERPNext operational inventory workflow validation focused on Retail, Distribution, FMCG/Fresh basics, and Manufacturing basics.
+```
 
 ## Development
 

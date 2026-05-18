@@ -1,0 +1,397 @@
+[
+  {
+    "id": "stockFmcgFreshBasicV2Test01",
+    "name": "ERPNext Stock V2 FMCG Fresh Basic Test",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erpnext-stock-v2-fmcg-fresh-basic-test",
+          "responseMode": "lastNode",
+          "responseData": "allEntries",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [-1900, 0],
+        "id": "fmcg-fresh-webhook",
+        "name": "POST Webhook",
+        "webhookId": "erpnext-stock-v2-fmcg-fresh-basic-test"
+      },
+      {
+        "parameters": {
+          "jsCode": "const now = new Date();\nconst today = now.toISOString().slice(0, 10);\nconst due = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);\nconst expiry = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);\nconst runId = `N8N-STOCK-FMCG-${Date.now()}`;\nreturn [{ json: { runId, company: 'Thái Duy Digital', parentWarehouse: 'All Warehouses - TDD', postingDate: today, dueDate: due, expiryDate: expiry, customerName: `${runId} KH bán lẻ fresh`, itemGroup: `${runId} Nhóm FMCG Fresh`, sellWarehouseName: `${runId} Kho bán fresh`, claimWarehouseName: `${runId} Kho claim NCC`, itemCode: `${runId} Sữa chua batch gần hạn`, feeItem: `${runId} Phí claim/rebate không kho`, batchId: `${runId}-EXP-BATCH-001`, receiptQty: 10, saleQty: 3, spoilageQty: 2, claimQty: 1, rate: 18, feeRate: 11, accounts: { receivable: '1310 - Debtors - TDD', sales: '4110 - Sales - TDD' } } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [-1680, 0],
+        "id": "build-fmcg-context",
+        "name": "Build FMCG Context"
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Customer",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer_name: $('Build FMCG Context').first().json.customerName, customer_type: \"Company\", customer_group: \"Individual\", territory: \"Vietnam\" }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1460, 0],
+        "id": "create-fmcg-customer",
+        "name": "Create FMCG Customer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "itemGroup",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_group_name: $('Build FMCG Context').first().json.itemGroup, parent_item_group: \"All Item Groups\", is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1240, 0],
+        "id": "create-fmcg-item-group",
+        "name": "Create FMCG Item Group",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build FMCG Context').first().json.sellWarehouseName, parent_warehouse: $('Build FMCG Context').first().json.parentWarehouse, company: $('Build FMCG Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1020, 0],
+        "id": "create-fmcg-sell-warehouse",
+        "name": "Create FMCG Sell Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build FMCG Context').first().json.claimWarehouseName, parent_warehouse: $('Build FMCG Context').first().json.parentWarehouse, company: $('Build FMCG Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-800, 0],
+        "id": "create-fmcg-claim-warehouse",
+        "name": "Create FMCG Claim Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build FMCG Context').first().json.itemCode, item_name: $('Build FMCG Context').first().json.itemCode, item_group: $('Create FMCG Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, has_batch_no: 1, create_new_batch: 0, has_expiry_date: 1, valuation_rate: $('Build FMCG Context').first().json.rate, standard_rate: $('Build FMCG Context').first().json.rate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-580, 0],
+        "id": "create-fmcg-batch-item",
+        "name": "Create FMCG Batch Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build FMCG Context').first().json.feeItem, item_name: $('Build FMCG Context').first().json.feeItem, item_group: $('Create FMCG Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 0, is_purchase_item: 0, is_sales_item: 1, standard_rate: $('Build FMCG Context').first().json.feeRate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-360, 0],
+        "id": "create-fmcg-fee-item",
+        "name": "Create FMCG Fee Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "batch",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ batch_id: $('Build FMCG Context').first().json.batchId, item: $('Create FMCG Batch Item').first().json.name, manufacturing_date: $('Build FMCG Context').first().json.postingDate, expiry_date: $('Build FMCG Context').first().json.expiryDate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-140, 0],
+        "id": "create-fmcg-expiry-batch",
+        "name": "Create FMCG Expiry Batch",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $('Build FMCG Context').first().json.company, posting_date: $('Build FMCG Context').first().json.postingDate, items: [{ item_code: $('Create FMCG Batch Item').first().json.name, t_warehouse: $('Create FMCG Sell Warehouse').first().json.name, qty: $('Build FMCG Context').first().json.receiptQty, basic_rate: $('Build FMCG Context').first().json.rate, use_serial_batch_fields: 1, batch_no: $('Create FMCG Expiry Batch').first().json.name }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [80, 0],
+        "id": "create-fmcg-receipt",
+        "name": "Create FMCG Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create FMCG Receipt').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [300, 0],
+        "id": "submit-fmcg-receipt",
+        "name": "Submit FMCG Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create FMCG Customer').first().json.name, company: $('Build FMCG Context').first().json.company, posting_date: $('Build FMCG Context').first().json.postingDate, due_date: $('Build FMCG Context').first().json.dueDate, update_stock: 1, set_warehouse: $('Create FMCG Sell Warehouse').first().json.name, debit_to: $('Build FMCG Context').first().json.accounts.receivable, items: [{ item_code: $('Create FMCG Batch Item').first().json.name, warehouse: $('Create FMCG Sell Warehouse').first().json.name, qty: $('Build FMCG Context').first().json.saleQty, rate: $('Build FMCG Context').first().json.rate, income_account: $('Build FMCG Context').first().json.accounts.sales, use_serial_batch_fields: 1, batch_no: $('Create FMCG Expiry Batch').first().json.name }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [520, 0],
+        "id": "create-fmcg-batch-sale",
+        "name": "Create FMCG Batch Sale",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create FMCG Batch Sale').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [740, 0],
+        "id": "submit-fmcg-batch-sale",
+        "name": "Submit FMCG Batch Sale",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Issue\", company: $('Build FMCG Context').first().json.company, posting_date: $('Build FMCG Context').first().json.postingDate, remarks: \"FMCG/Fresh spoilage or damage disposal\", items: [{ item_code: $('Create FMCG Batch Item').first().json.name, s_warehouse: $('Create FMCG Sell Warehouse').first().json.name, qty: $('Build FMCG Context').first().json.spoilageQty, basic_rate: $('Build FMCG Context').first().json.rate, use_serial_batch_fields: 1, batch_no: $('Create FMCG Expiry Batch').first().json.name }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [960, 0],
+        "id": "create-fmcg-spoilage-issue",
+        "name": "Create FMCG Spoilage Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create FMCG Spoilage Issue').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1180, 0],
+        "id": "submit-fmcg-spoilage-issue",
+        "name": "Submit FMCG Spoilage Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Transfer\", company: $('Build FMCG Context').first().json.company, posting_date: $('Build FMCG Context').first().json.postingDate, remarks: \"Move damaged fresh inventory into vendor claim warehouse\", items: [{ item_code: $('Create FMCG Batch Item').first().json.name, s_warehouse: $('Create FMCG Sell Warehouse').first().json.name, t_warehouse: $('Create FMCG Claim Warehouse').first().json.name, qty: $('Build FMCG Context').first().json.claimQty, basic_rate: $('Build FMCG Context').first().json.rate, use_serial_batch_fields: 1, batch_no: $('Create FMCG Expiry Batch').first().json.name }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1400, 0],
+        "id": "create-fmcg-claim-transfer",
+        "name": "Create FMCG Claim Transfer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create FMCG Claim Transfer').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1620, 0],
+        "id": "submit-fmcg-claim-transfer",
+        "name": "Submit FMCG Claim Transfer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Issue\", company: $('Build FMCG Context').first().json.company, posting_date: $('Build FMCG Context').first().json.postingDate, remarks: \"Vendor claim closure / return-to-supplier stock reduction\", items: [{ item_code: $('Create FMCG Batch Item').first().json.name, s_warehouse: $('Create FMCG Claim Warehouse').first().json.name, qty: $('Build FMCG Context').first().json.claimQty, basic_rate: $('Build FMCG Context').first().json.rate, use_serial_batch_fields: 1, batch_no: $('Create FMCG Expiry Batch').first().json.name }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1840, 0],
+        "id": "create-fmcg-claim-issue",
+        "name": "Create FMCG Claim Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create FMCG Claim Issue').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2060, 0],
+        "id": "submit-fmcg-claim-issue",
+        "name": "Submit FMCG Claim Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create FMCG Customer').first().json.name, company: $('Build FMCG Context').first().json.company, posting_date: $('Build FMCG Context').first().json.postingDate, due_date: $('Build FMCG Context').first().json.dueDate, update_stock: 0, debit_to: $('Build FMCG Context').first().json.accounts.receivable, remarks: \"FMCG/Fresh post-sale deduction or claim/rebate fee, no stock movement\", items: [{ item_code: $('Create FMCG Fee Item').first().json.name, qty: 1, rate: $('Build FMCG Context').first().json.feeRate, income_account: $('Build FMCG Context').first().json.accounts.sales }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [2280, 0],
+        "id": "create-fmcg-fee-invoice",
+        "name": "Create FMCG Fee Invoice",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create FMCG Fee Invoice').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [2500, 0],
+        "id": "submit-fmcg-fee-invoice",
+        "name": "Submit FMCG Fee Invoice",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,valuation_rate,stock_value",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create FMCG Batch Item').first().json.name, warehouse: $('Create FMCG Sell Warehouse').first().json.name }) }}",
+          "returnAll": false,
+          "limit": 5,
+          "orderBy": "modified desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2720, 0],
+        "id": "verify-fmcg-sell-bin",
+        "name": "Verify FMCG Sell Bin",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,valuation_rate,stock_value",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create FMCG Batch Item').first().json.name, warehouse: $('Create FMCG Claim Warehouse').first().json.name }) }}",
+          "returnAll": false,
+          "limit": 5,
+          "orderBy": "modified desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2940, 0],
+        "id": "verify-fmcg-claim-bin",
+        "name": "Verify FMCG Claim Bin",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockLedgerEntry",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,batch_no,serial_and_batch_bundle,voucher_type,voucher_no,actual_qty,qty_after_transaction,is_cancelled",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create FMCG Batch Item').first().json.name }) }}",
+          "returnAll": false,
+          "limit": 30,
+          "orderBy": "posting_date desc, posting_time desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [3160, 0],
+        "id": "verify-fmcg-sle",
+        "name": "Verify FMCG SLE",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "const ctx = $('Build FMCG Context').first().json;\nconst sellBin = $('Verify FMCG Sell Bin').all().map(i => i.json);\nconst claimBin = $('Verify FMCG Claim Bin').all().map(i => i.json);\nconst sle = $('Verify FMCG SLE').all().map(i => i.json);\nconst expectedSellQty = ctx.receiptQty - ctx.saleQty - ctx.spoilageQty - ctx.claimQty;\nconst expectedClaimQty = 0;\nconst receipt = $('Submit FMCG Receipt').first().json;\nconst sale = $('Submit FMCG Batch Sale').first().json;\nconst spoilage = $('Submit FMCG Spoilage Issue').first().json;\nconst claimTransfer = $('Submit FMCG Claim Transfer').first().json;\nconst claimIssue = $('Submit FMCG Claim Issue').first().json;\nconst feeInvoice = $('Submit FMCG Fee Invoice').first().json;\nconst receiptRows = sle.filter(row => row.voucher_no === $('Create FMCG Receipt').first().json.name);\nconst saleRows = sle.filter(row => row.voucher_no === $('Create FMCG Batch Sale').first().json.name);\nconst spoilageRows = sle.filter(row => row.voucher_no === $('Create FMCG Spoilage Issue').first().json.name);\nconst claimTransferRows = sle.filter(row => row.voucher_no === $('Create FMCG Claim Transfer').first().json.name);\nconst claimIssueRows = sle.filter(row => row.voucher_no === $('Create FMCG Claim Issue').first().json.name);\nconst batchBundleTrackedRows = sle.every(row => row.serial_and_batch_bundle);\nconst noFeeLedgerInFetchedRows = !sle.some(row => row.voucher_no === $('Create FMCG Fee Invoice').first().json.name || row.item_code === $('Create FMCG Fee Item').first().json.name);\nconst status = Number(receipt.docstatus) === 1 && Number(sale.docstatus) === 1 && Number(spoilage.docstatus) === 1 && Number(claimTransfer.docstatus) === 1 && Number(claimIssue.docstatus) === 1 && Number(feeInvoice.docstatus) === 1 && Number(feeInvoice.update_stock) === 0 && Number(sellBin[0]?.actual_qty) === expectedSellQty && Number(claimBin[0]?.actual_qty) === expectedClaimQty && receiptRows.some(row => Number(row.actual_qty) === ctx.receiptQty) && saleRows.some(row => Number(row.actual_qty) === -ctx.saleQty) && spoilageRows.some(row => Number(row.actual_qty) === -ctx.spoilageQty) && claimTransferRows.some(row => row.warehouse === $('Create FMCG Sell Warehouse').first().json.name && Number(row.actual_qty) === -ctx.claimQty) && claimTransferRows.some(row => row.warehouse === $('Create FMCG Claim Warehouse').first().json.name && Number(row.actual_qty) === ctx.claimQty) && claimIssueRows.some(row => row.warehouse === $('Create FMCG Claim Warehouse').first().json.name && Number(row.actual_qty) === -ctx.claimQty) && batchBundleTrackedRows && noFeeLedgerInFetchedRows;\nconst text = JSON.stringify({ ctx, sellBin, claimBin, sle, feeInvoice });\nconst securityFindings = ['api key', 'api_secret', 'authorization', 'token ', 'password'].filter(term => text.toLowerCase().includes(term));\nreturn [{ json: { status: status && securityFindings.length === 0 ? 'passed' : 'failed', runId: ctx.runId, item: $('Create FMCG Batch Item').first().json.name, batch: $('Create FMCG Expiry Batch').first().json.name, expiryDate: ctx.expiryDate, sellWarehouse: $('Create FMCG Sell Warehouse').first().json.name, claimWarehouse: $('Create FMCG Claim Warehouse').first().json.name, receipt: $('Create FMCG Receipt').first().json.name, saleInvoice: $('Submit FMCG Batch Sale').first().json.name, spoilageIssue: $('Create FMCG Spoilage Issue').first().json.name, claimTransfer: $('Create FMCG Claim Transfer').first().json.name, claimIssue: $('Create FMCG Claim Issue').first().json.name, feeInvoice: $('Submit FMCG Fee Invoice').first().json.name, feeInvoiceUpdateStock: feeInvoice.update_stock, sellBinActualQty: sellBin[0]?.actual_qty, claimBinActualQty: claimBin[0]?.actual_qty, ledgerRows: sle.length, receiptLedgerActualQty: receiptRows.map(row => row.actual_qty), saleLedgerActualQty: saleRows.map(row => row.actual_qty), spoilageLedgerActualQty: spoilageRows.map(row => row.actual_qty), claimTransferLedgerActualQty: claimTransferRows.map(row => ({ warehouse: row.warehouse, actual_qty: row.actual_qty })), claimIssueLedgerActualQty: claimIssueRows.map(row => row.actual_qty), batchBundleTrackedRows, noFeeLedgerInFetchedRows, batchTrackingNote: 'ERPNext v16 stores exact batch details in Serial and Batch Bundle/Entry; DB verification records batch_no.', securityFindings } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [3380, 0],
+        "id": "return-safe-fmcg-summary",
+        "name": "Return Safe FMCG Summary"
+      }
+    ],
+    "connections": {
+      "POST Webhook": { "main": [[{ "node": "Build FMCG Context", "type": "main", "index": 0 }]] },
+      "Build FMCG Context": { "main": [[{ "node": "Create FMCG Customer", "type": "main", "index": 0 }]] },
+      "Create FMCG Customer": { "main": [[{ "node": "Create FMCG Item Group", "type": "main", "index": 0 }]] },
+      "Create FMCG Item Group": { "main": [[{ "node": "Create FMCG Sell Warehouse", "type": "main", "index": 0 }]] },
+      "Create FMCG Sell Warehouse": { "main": [[{ "node": "Create FMCG Claim Warehouse", "type": "main", "index": 0 }]] },
+      "Create FMCG Claim Warehouse": { "main": [[{ "node": "Create FMCG Batch Item", "type": "main", "index": 0 }]] },
+      "Create FMCG Batch Item": { "main": [[{ "node": "Create FMCG Fee Item", "type": "main", "index": 0 }]] },
+      "Create FMCG Fee Item": { "main": [[{ "node": "Create FMCG Expiry Batch", "type": "main", "index": 0 }]] },
+      "Create FMCG Expiry Batch": { "main": [[{ "node": "Create FMCG Receipt", "type": "main", "index": 0 }]] },
+      "Create FMCG Receipt": { "main": [[{ "node": "Submit FMCG Receipt", "type": "main", "index": 0 }]] },
+      "Submit FMCG Receipt": { "main": [[{ "node": "Create FMCG Batch Sale", "type": "main", "index": 0 }]] },
+      "Create FMCG Batch Sale": { "main": [[{ "node": "Submit FMCG Batch Sale", "type": "main", "index": 0 }]] },
+      "Submit FMCG Batch Sale": { "main": [[{ "node": "Create FMCG Spoilage Issue", "type": "main", "index": 0 }]] },
+      "Create FMCG Spoilage Issue": { "main": [[{ "node": "Submit FMCG Spoilage Issue", "type": "main", "index": 0 }]] },
+      "Submit FMCG Spoilage Issue": { "main": [[{ "node": "Create FMCG Claim Transfer", "type": "main", "index": 0 }]] },
+      "Create FMCG Claim Transfer": { "main": [[{ "node": "Submit FMCG Claim Transfer", "type": "main", "index": 0 }]] },
+      "Submit FMCG Claim Transfer": { "main": [[{ "node": "Create FMCG Claim Issue", "type": "main", "index": 0 }]] },
+      "Create FMCG Claim Issue": { "main": [[{ "node": "Submit FMCG Claim Issue", "type": "main", "index": 0 }]] },
+      "Submit FMCG Claim Issue": { "main": [[{ "node": "Create FMCG Fee Invoice", "type": "main", "index": 0 }]] },
+      "Create FMCG Fee Invoice": { "main": [[{ "node": "Submit FMCG Fee Invoice", "type": "main", "index": 0 }]] },
+      "Submit FMCG Fee Invoice": { "main": [[{ "node": "Verify FMCG Sell Bin", "type": "main", "index": 0 }]] },
+      "Verify FMCG Sell Bin": { "main": [[{ "node": "Verify FMCG Claim Bin", "type": "main", "index": 0 }]] },
+      "Verify FMCG Claim Bin": { "main": [[{ "node": "Verify FMCG SLE", "type": "main", "index": 0 }]] },
+      "Verify FMCG SLE": { "main": [[{ "node": "Return Safe FMCG Summary", "type": "main", "index": 0 }]] },
+      "Return Safe FMCG Summary": { "main": [[]] }
+    },
+    "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+    "staticData": null,
+    "pinData": {},
+    "meta": { "templateCredsSetupCompleted": true },
+    "tags": []
+  }
+]

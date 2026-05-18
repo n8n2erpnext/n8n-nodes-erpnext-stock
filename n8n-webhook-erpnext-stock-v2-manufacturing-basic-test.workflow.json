@@ -1,0 +1,437 @@
+[
+  {
+    "id": "stockMfgBasicV2Test01",
+    "name": "ERPNext Stock V2 Manufacturing Basic Test",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erpnext-stock-v2-manufacturing-basic-test",
+          "responseMode": "lastNode",
+          "responseData": "allEntries",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [-1900, 0],
+        "id": "manufacturing-basic-webhook",
+        "name": "POST Webhook",
+        "webhookId": "erpnext-stock-v2-manufacturing-basic-test"
+      },
+      {
+        "parameters": {
+          "jsCode": "const now = new Date();\nconst today = now.toISOString().slice(0, 10);\nconst due = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);\nconst runId = `N8N-STOCK-MFG-${Date.now()}`;\nreturn [{ json: { runId, company: 'Thái Duy Digital', parentWarehouse: 'All Warehouses - TDD', postingDate: today, dueDate: due, plannedStart: `${today} 08:00:00`, customerName: `${runId} KH finished goods`, itemGroup: `${runId} Nhóm SX cơ bản`, rawWarehouseName: `${runId} Raw WH`, wipWarehouseName: `${runId} WIP WH`, fgWarehouseName: `${runId} FG WH`, rawA: `${runId} Raw A`, rawB: `${runId} Raw B`, finished: `${runId} Finished Good`, receiptRawA: 5, receiptRawB: 4, consumeRawA: 2, consumeRawB: 1, finishedQty: 1, rawARate: 30, rawBRate: 20, finishedRate: 95, accounts: { receivable: '1310 - Debtors - TDD', sales: '4110 - Sales - TDD' } } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [-1680, 0],
+        "id": "build-mfg-context",
+        "name": "Build MFG Context"
+      },
+      {
+        "parameters": {
+          "resource": "itemGroup",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_group_name: $('Build MFG Context').first().json.itemGroup, parent_item_group: \"All Item Groups\", is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1460, 0],
+        "id": "create-mfg-item-group",
+        "name": "Create MFG Item Group",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build MFG Context').first().json.rawWarehouseName, parent_warehouse: $('Build MFG Context').first().json.parentWarehouse, company: $('Build MFG Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1240, 0],
+        "id": "create-mfg-raw-warehouse",
+        "name": "Create MFG Raw Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build MFG Context').first().json.wipWarehouseName, parent_warehouse: $('Build MFG Context').first().json.parentWarehouse, company: $('Build MFG Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1020, 0],
+        "id": "create-mfg-wip-warehouse",
+        "name": "Create MFG WIP Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $('Build MFG Context').first().json.fgWarehouseName, parent_warehouse: $('Build MFG Context').first().json.parentWarehouse, company: $('Build MFG Context').first().json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-800, 0],
+        "id": "create-mfg-fg-warehouse",
+        "name": "Create MFG FG Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build MFG Context').first().json.rawA, item_name: $('Build MFG Context').first().json.rawA, item_group: $('Create MFG Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 0, include_item_in_manufacturing: 1, valuation_rate: $('Build MFG Context').first().json.rawARate, standard_rate: $('Build MFG Context').first().json.rawARate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-580, 0],
+        "id": "create-mfg-raw-a",
+        "name": "Create MFG Raw A",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build MFG Context').first().json.rawB, item_name: $('Build MFG Context').first().json.rawB, item_group: $('Create MFG Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 0, include_item_in_manufacturing: 1, valuation_rate: $('Build MFG Context').first().json.rawBRate, standard_rate: $('Build MFG Context').first().json.rawBRate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-360, 0],
+        "id": "create-mfg-raw-b",
+        "name": "Create MFG Raw B",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $('Build MFG Context').first().json.finished, item_name: $('Build MFG Context').first().json.finished, item_group: $('Create MFG Item Group').first().json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 0, is_sales_item: 1, valuation_rate: $('Build MFG Context').first().json.finishedRate, standard_rate: $('Build MFG Context').first().json.finishedRate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-140, 0],
+        "id": "create-mfg-finished",
+        "name": "Create MFG Finished",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $('Build MFG Context').first().json.company, posting_date: $('Build MFG Context').first().json.postingDate, items: [{ item_code: $('Create MFG Raw A').first().json.name, t_warehouse: $('Create MFG Raw Warehouse').first().json.name, qty: $('Build MFG Context').first().json.receiptRawA, basic_rate: $('Build MFG Context').first().json.rawARate }, { item_code: $('Create MFG Raw B').first().json.name, t_warehouse: $('Create MFG Raw Warehouse').first().json.name, qty: $('Build MFG Context').first().json.receiptRawB, basic_rate: $('Build MFG Context').first().json.rawBRate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [80, 0],
+        "id": "create-mfg-raw-receipt",
+        "name": "Create MFG Raw Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create MFG Raw Receipt').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [300, 0],
+        "id": "submit-mfg-raw-receipt",
+        "name": "Submit MFG Raw Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "BOM",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ company: $('Build MFG Context').first().json.company, item: $('Create MFG Finished').first().json.name, quantity: $('Build MFG Context').first().json.finishedQty, uom: \"Unit\", is_active: 1, is_default: 1, with_operations: 0, default_source_warehouse: $('Create MFG Raw Warehouse').first().json.name, default_target_warehouse: $('Create MFG FG Warehouse').first().json.name, rm_cost_as_per: \"Valuation Rate\", items: [{ item_code: $('Create MFG Raw A').first().json.name, qty: $('Build MFG Context').first().json.consumeRawA, uom: \"Unit\", stock_uom: \"Unit\", conversion_factor: 1, rate: $('Build MFG Context').first().json.rawARate, source_warehouse: $('Create MFG Raw Warehouse').first().json.name, include_item_in_manufacturing: 1 }, { item_code: $('Create MFG Raw B').first().json.name, qty: $('Build MFG Context').first().json.consumeRawB, uom: \"Unit\", stock_uom: \"Unit\", conversion_factor: 1, rate: $('Build MFG Context').first().json.rawBRate, source_warehouse: $('Create MFG Raw Warehouse').first().json.name, include_item_in_manufacturing: 1 }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [520, 0],
+        "id": "create-mfg-bom",
+        "name": "Create MFG BOM",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "BOM",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create MFG BOM').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [740, 0],
+        "id": "submit-mfg-bom",
+        "name": "Submit MFG BOM",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Work Order",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ company: $('Build MFG Context').first().json.company, production_item: $('Create MFG Finished').first().json.name, bom_no: $('Submit MFG BOM').first().json.name, qty: $('Build MFG Context').first().json.finishedQty, source_warehouse: $('Create MFG Raw Warehouse').first().json.name, wip_warehouse: $('Create MFG WIP Warehouse').first().json.name, fg_warehouse: $('Create MFG FG Warehouse').first().json.name, transfer_material_against: \"Work Order\", planned_start_date: $('Build MFG Context').first().json.plannedStart }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [960, 0],
+        "id": "create-mfg-work-order",
+        "name": "Create MFG Work Order",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Work Order",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create MFG Work Order').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1180, 0],
+        "id": "submit-mfg-work-order",
+        "name": "Submit MFG Work Order",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Transfer for Manufacture\", company: $('Build MFG Context').first().json.company, posting_date: $('Build MFG Context').first().json.postingDate, work_order: $('Submit MFG Work Order').first().json.name, from_warehouse: $('Create MFG Raw Warehouse').first().json.name, to_warehouse: $('Create MFG WIP Warehouse').first().json.name, items: [{ item_code: $('Create MFG Raw A').first().json.name, s_warehouse: $('Create MFG Raw Warehouse').first().json.name, t_warehouse: $('Create MFG WIP Warehouse').first().json.name, qty: $('Build MFG Context').first().json.consumeRawA, basic_rate: $('Build MFG Context').first().json.rawARate }, { item_code: $('Create MFG Raw B').first().json.name, s_warehouse: $('Create MFG Raw Warehouse').first().json.name, t_warehouse: $('Create MFG WIP Warehouse').first().json.name, qty: $('Build MFG Context').first().json.consumeRawB, basic_rate: $('Build MFG Context').first().json.rawBRate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1400, 0],
+        "id": "create-mfg-transfer",
+        "name": "Create MFG Transfer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create MFG Transfer').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1620, 0],
+        "id": "submit-mfg-transfer",
+        "name": "Submit MFG Transfer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Manufacture\", company: $('Build MFG Context').first().json.company, posting_date: $('Build MFG Context').first().json.postingDate, work_order: $('Submit MFG Work Order').first().json.name, from_bom: 1, use_multi_level_bom: 0, bom_no: $('Submit MFG BOM').first().json.name, fg_completed_qty: $('Build MFG Context').first().json.finishedQty, from_warehouse: $('Create MFG WIP Warehouse').first().json.name, to_warehouse: $('Create MFG FG Warehouse').first().json.name, items: [{ item_code: $('Create MFG Raw A').first().json.name, s_warehouse: $('Create MFG WIP Warehouse').first().json.name, qty: $('Build MFG Context').first().json.consumeRawA, basic_rate: $('Build MFG Context').first().json.rawARate }, { item_code: $('Create MFG Raw B').first().json.name, s_warehouse: $('Create MFG WIP Warehouse').first().json.name, qty: $('Build MFG Context').first().json.consumeRawB, basic_rate: $('Build MFG Context').first().json.rawBRate }, { item_code: $('Create MFG Finished').first().json.name, t_warehouse: $('Create MFG FG Warehouse').first().json.name, qty: $('Build MFG Context').first().json.finishedQty, basic_rate: $('Build MFG Context').first().json.finishedRate, is_finished_item: 1 }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1840, 0],
+        "id": "create-mfg-manufacture",
+        "name": "Create MFG Manufacture",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "update",
+          "documentName": "={{ $('Create MFG Manufacture').first().json.name }}",
+          "dataJson": "={{ JSON.stringify({ from_bom: 1, use_multi_level_bom: 0, fg_completed_qty: $('Build MFG Context').first().json.finishedQty }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2060, 0],
+        "id": "update-mfg-manufacture",
+        "name": "Update MFG Manufacture",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create MFG Manufacture').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2280, 0],
+        "id": "submit-mfg-manufacture",
+        "name": "Submit MFG Manufacture",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Customer",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer_name: $('Build MFG Context').first().json.customerName, customer_type: \"Company\", customer_group: \"Individual\", territory: \"Vietnam\" }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2500, 0],
+        "id": "create-mfg-customer",
+        "name": "Create MFG Customer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $('Create MFG Customer').first().json.name, company: $('Build MFG Context').first().json.company, posting_date: $('Build MFG Context').first().json.postingDate, due_date: $('Build MFG Context').first().json.dueDate, update_stock: 1, set_warehouse: $('Create MFG FG Warehouse').first().json.name, debit_to: $('Build MFG Context').first().json.accounts.receivable, items: [{ item_code: $('Create MFG Finished').first().json.name, warehouse: $('Create MFG FG Warehouse').first().json.name, qty: 1, rate: $('Build MFG Context').first().json.finishedRate, income_account: $('Build MFG Context').first().json.accounts.sales }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [2500, 0],
+        "id": "create-mfg-sale",
+        "name": "Create MFG Sale",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "salesInvoice",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $('Create MFG Sale').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-accounting.erpNextAccounting",
+        "typeVersion": 1,
+        "position": [2720, 0],
+        "id": "submit-mfg-sale",
+        "name": "Submit MFG Sale",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Work Order",
+          "apiVersion": "v2",
+          "operation": "get",
+          "documentName": "={{ $('Create MFG Work Order').first().json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [2940, 0],
+        "id": "get-mfg-work-order-after",
+        "name": "Get MFG Work Order After",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v2",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create MFG Finished').first().json.name }) }}",
+          "limit": 20
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [3160, 0],
+        "id": "verify-mfg-finished-bin",
+        "name": "Verify MFG Finished Bin",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { continueAfterFinishedBin: true } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [3270, 0],
+        "id": "collapse-mfg-bin",
+        "name": "Collapse MFG Bin"
+      },
+      {
+        "parameters": {
+          "resource": "stockLedgerEntry",
+          "apiVersion": "v2",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,qty_after_transaction,voucher_type,voucher_no",
+          "filtersJson": "={{ JSON.stringify({ item_code: $('Create MFG Finished').first().json.name }) }}",
+          "limit": 30,
+          "orderBy": "creation asc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [3380, 0],
+        "id": "verify-mfg-finished-sle",
+        "name": "Verify MFG Finished SLE",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "const ctx = $('Build MFG Context').first().json;\nconst wo = $('Get MFG Work Order After').first().json;\nconst bins = $('Verify MFG Finished Bin').all().map(i => i.json);\nconst sle = $('Verify MFG Finished SLE').all().map(i => i.json);\nconst fgWh = $('Create MFG FG Warehouse').first().json.name;\nconst fgQty = Number(bins.find(row => row.warehouse === fgWh)?.actual_qty ?? 0);\nconst manufactureRows = sle.filter(row => row.voucher_no === $('Create MFG Manufacture').first().json.name);\nconst saleRows = sle.filter(row => row.voucher_no === $('Create MFG Sale').first().json.name);\nconst status = Number($('Submit MFG BOM').first().json.docstatus) === 1 && Number(wo.docstatus) === 1 && Number($('Submit MFG Transfer').first().json.docstatus) === 1 && Number($('Submit MFG Manufacture').first().json.docstatus) === 1 && Number($('Submit MFG Sale').first().json.docstatus) === 1 && fgQty === 0 && manufactureRows.some(row => Number(row.actual_qty) === ctx.finishedQty) && saleRows.some(row => Number(row.actual_qty) === -ctx.finishedQty);\nconst text = JSON.stringify({ wo: { name: wo.name, docstatus: wo.docstatus, status: wo.status, produced_qty: wo.produced_qty, material_transferred_for_manufacturing: wo.material_transferred_for_manufacturing }, bins, sle });\nconst securityFindings = ['api key', 'api_secret', 'authorization', 'token ', 'password'].filter(term => text.toLowerCase().includes(term));\nreturn [{ json: { status: status && securityFindings.length === 0 ? 'passed' : 'failed', runId: ctx.runId, bom: $('Create MFG BOM').first().json.name, workOrder: wo.name, workOrderDocstatus: wo.docstatus, workOrderStatus: wo.status, workOrderProducedQty: wo.produced_qty, workOrderTransferredQty: wo.material_transferred_for_manufacturing, transferEntry: $('Create MFG Transfer').first().json.name, manufactureEntry: $('Create MFG Manufacture').first().json.name, saleInvoice: $('Submit MFG Sale').first().json.name, finishedItem: $('Create MFG Finished').first().json.name, finishedWarehouse: fgWh, finishedQtyAfterSale: fgQty, finishedLedgerRows: sle.length, manufactureLedgerActualQty: manufactureRows.map(row => row.actual_qty), saleLedgerActualQty: saleRows.map(row => row.actual_qty), securityFindings } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [3600, 0],
+        "id": "return-safe-mfg-summary",
+        "name": "Return Safe MFG Summary"
+      }
+    ],
+    "connections": {
+      "POST Webhook": { "main": [[{ "node": "Build MFG Context", "type": "main", "index": 0 }]] },
+      "Build MFG Context": { "main": [[{ "node": "Create MFG Item Group", "type": "main", "index": 0 }]] },
+      "Create MFG Item Group": { "main": [[{ "node": "Create MFG Raw Warehouse", "type": "main", "index": 0 }]] },
+      "Create MFG Raw Warehouse": { "main": [[{ "node": "Create MFG WIP Warehouse", "type": "main", "index": 0 }]] },
+      "Create MFG WIP Warehouse": { "main": [[{ "node": "Create MFG FG Warehouse", "type": "main", "index": 0 }]] },
+      "Create MFG FG Warehouse": { "main": [[{ "node": "Create MFG Raw A", "type": "main", "index": 0 }]] },
+      "Create MFG Raw A": { "main": [[{ "node": "Create MFG Raw B", "type": "main", "index": 0 }]] },
+      "Create MFG Raw B": { "main": [[{ "node": "Create MFG Finished", "type": "main", "index": 0 }]] },
+      "Create MFG Finished": { "main": [[{ "node": "Create MFG Raw Receipt", "type": "main", "index": 0 }]] },
+      "Create MFG Raw Receipt": { "main": [[{ "node": "Submit MFG Raw Receipt", "type": "main", "index": 0 }]] },
+      "Submit MFG Raw Receipt": { "main": [[{ "node": "Create MFG BOM", "type": "main", "index": 0 }]] },
+      "Create MFG BOM": { "main": [[{ "node": "Submit MFG BOM", "type": "main", "index": 0 }]] },
+      "Submit MFG BOM": { "main": [[{ "node": "Create MFG Work Order", "type": "main", "index": 0 }]] },
+      "Create MFG Work Order": { "main": [[{ "node": "Submit MFG Work Order", "type": "main", "index": 0 }]] },
+      "Submit MFG Work Order": { "main": [[{ "node": "Create MFG Transfer", "type": "main", "index": 0 }]] },
+      "Create MFG Transfer": { "main": [[{ "node": "Submit MFG Transfer", "type": "main", "index": 0 }]] },
+      "Submit MFG Transfer": { "main": [[{ "node": "Create MFG Manufacture", "type": "main", "index": 0 }]] },
+      "Create MFG Manufacture": { "main": [[{ "node": "Update MFG Manufacture", "type": "main", "index": 0 }]] },
+      "Update MFG Manufacture": { "main": [[{ "node": "Submit MFG Manufacture", "type": "main", "index": 0 }]] },
+      "Submit MFG Manufacture": { "main": [[{ "node": "Create MFG Customer", "type": "main", "index": 0 }]] },
+      "Create MFG Customer": { "main": [[{ "node": "Create MFG Sale", "type": "main", "index": 0 }]] },
+      "Create MFG Sale": { "main": [[{ "node": "Submit MFG Sale", "type": "main", "index": 0 }]] },
+      "Submit MFG Sale": { "main": [[{ "node": "Get MFG Work Order After", "type": "main", "index": 0 }]] },
+      "Get MFG Work Order After": { "main": [[{ "node": "Verify MFG Finished Bin", "type": "main", "index": 0 }]] },
+      "Verify MFG Finished Bin": { "main": [[{ "node": "Collapse MFG Bin", "type": "main", "index": 0 }]] },
+      "Collapse MFG Bin": { "main": [[{ "node": "Verify MFG Finished SLE", "type": "main", "index": 0 }]] },
+      "Verify MFG Finished SLE": { "main": [[{ "node": "Return Safe MFG Summary", "type": "main", "index": 0 }]] },
+      "Return Safe MFG Summary": { "main": [[]] }
+    },
+    "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+    "staticData": null,
+    "pinData": {},
+    "meta": { "templateCredsSetupCompleted": true },
+    "tags": []
+  }
+]
