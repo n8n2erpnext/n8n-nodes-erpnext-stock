@@ -1,0 +1,213 @@
+[
+  {
+    "id": "stockDeliveryNoteV2Test01",
+    "name": "ERPNext Stock V2 Delivery Note Test",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erpnext-stock-v2-delivery-note-test",
+          "responseMode": "lastNode",
+          "responseData": "allEntries",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [-1400, 0],
+        "id": "stock-delivery-note-webhook",
+        "name": "POST Webhook",
+        "webhookId": "erpnext-stock-v2-delivery-note-test"
+      },
+      {
+        "parameters": {
+          "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst stamp = Date.now();\nconst runId = `N8N-STOCK-DN-${stamp}`;\nreturn [{ json: { runId, company: 'Thái Duy Digital', parentWarehouse: 'All Warehouses - TDD', postingDate: today, itemGroup: `${runId} Nhóm giao hàng`, warehouseName: `${runId} Delivery WH`, itemCode: `${runId} Hàng giao Đặc biệt`, customerName: `${runId} KH giao hàng`, receiptQty: 5, deliveryQty: 2, rate: 31 } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [-1180, 0],
+        "id": "build-delivery-context",
+        "name": "Build Delivery Context"
+      },
+      {
+        "parameters": {
+          "resource": "customDocType",
+          "customDocType": "Customer",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer_name: $node[\"Build Delivery Context\"].json.customerName, customer_type: \"Company\", customer_group: \"Individual\", territory: \"Vietnam\" }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-960, 0],
+        "id": "create-delivery-customer",
+        "name": "Create Delivery Customer",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "itemGroup",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_group_name: $node[\"Build Delivery Context\"].json.itemGroup, parent_item_group: \"All Item Groups\", is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-740, 0],
+        "id": "create-delivery-item-group",
+        "name": "Create Delivery Item Group",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $node[\"Build Delivery Context\"].json.warehouseName, parent_warehouse: $node[\"Build Delivery Context\"].json.parentWarehouse, company: $node[\"Build Delivery Context\"].json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-520, 0],
+        "id": "create-delivery-warehouse",
+        "name": "Create Delivery Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $node[\"Build Delivery Context\"].json.itemCode, item_name: $node[\"Build Delivery Context\"].json.itemCode, item_group: $node[\"Create Delivery Item Group\"].json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, valuation_rate: $node[\"Build Delivery Context\"].json.rate, standard_rate: $node[\"Build Delivery Context\"].json.rate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-300, 0],
+        "id": "create-delivery-item",
+        "name": "Create Delivery Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $node[\"Build Delivery Context\"].json.company, posting_date: $node[\"Build Delivery Context\"].json.postingDate, items: [{ item_code: $node[\"Create Delivery Item\"].json.name, t_warehouse: $node[\"Create Delivery Warehouse\"].json.name, qty: $node[\"Build Delivery Context\"].json.receiptQty, basic_rate: $node[\"Build Delivery Context\"].json.rate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-80, 0],
+        "id": "create-delivery-receipt",
+        "name": "Create Delivery Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $node[\"Create Delivery Receipt\"].json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [140, 0],
+        "id": "submit-delivery-receipt",
+        "name": "Submit Delivery Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "deliveryNote",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ customer: $node[\"Create Delivery Customer\"].json.name, company: $node[\"Build Delivery Context\"].json.company, posting_date: $node[\"Build Delivery Context\"].json.postingDate, set_warehouse: $node[\"Create Delivery Warehouse\"].json.name, items: [{ item_code: $node[\"Create Delivery Item\"].json.name, warehouse: $node[\"Create Delivery Warehouse\"].json.name, qty: $node[\"Build Delivery Context\"].json.deliveryQty, rate: $node[\"Build Delivery Context\"].json.rate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [360, 0],
+        "id": "create-delivery-note",
+        "name": "Create Delivery Note",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "deliveryNote",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $node[\"Create Delivery Note\"].json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [580, 0],
+        "id": "submit-delivery-note",
+        "name": "Submit Delivery Note",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,valuation_rate,stock_value",
+          "filtersJson": "={{ JSON.stringify({ item_code: $node[\"Create Delivery Item\"].json.name, warehouse: $node[\"Create Delivery Warehouse\"].json.name }) }}",
+          "returnAll": false,
+          "limit": 5,
+          "orderBy": "modified desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [800, 0],
+        "id": "verify-delivery-bin",
+        "name": "Verify Delivery Bin",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockLedgerEntry",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,voucher_type,voucher_no,actual_qty,qty_after_transaction,is_cancelled",
+          "filtersJson": "={{ JSON.stringify({ voucher_type: \"Delivery Note\", voucher_no: $node[\"Create Delivery Note\"].json.name }) }}",
+          "returnAll": false,
+          "limit": 10,
+          "orderBy": "posting_date desc, posting_time desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1020, 0],
+        "id": "verify-delivery-sle",
+        "name": "Verify Delivery SLE",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "const ctx = $node['Build Delivery Context'].json;\nconst dn = $node['Submit Delivery Note'].json;\nconst bin = $('Verify Delivery Bin').all().map(i => i.json);\nconst sle = $('Verify Delivery SLE').all().map(i => i.json);\nconst text = JSON.stringify({ ctx, dn, bin, sle });\nconst securityFindings = ['api key', 'api_secret', 'authorization', 'token ', 'password'].filter(term => text.toLowerCase().includes(term));\nconst expectedQty = ctx.receiptQty - ctx.deliveryQty;\nconst status = Number(dn.docstatus) === 1 && Number(bin[0]?.actual_qty) === expectedQty && sle.some(row => Number(row.actual_qty) === -ctx.deliveryQty && Number(row.qty_after_transaction) === expectedQty) ? 'passed' : 'failed';\nreturn [{ json: { status, runId: ctx.runId, customer: $node['Create Delivery Customer'].json.name, item: $node['Create Delivery Item'].json.name, warehouse: $node['Create Delivery Warehouse'].json.name, receipt: $node['Create Delivery Receipt'].json.name, deliveryNote: $node['Create Delivery Note'].json.name, deliveryNoteDocstatus: dn.docstatus, binActualQty: bin[0]?.actual_qty, deliveryLedgerRows: sle.length, deliveryLedgerActualQty: sle.map(row => row.actual_qty), deliveryLedgerQtyAfterTransaction: sle.map(row => row.qty_after_transaction), securityFindings } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1240, 0],
+        "id": "return-safe-delivery-summary",
+        "name": "Return Safe Delivery Summary"
+      }
+    ],
+    "connections": {
+      "POST Webhook": { "main": [[{ "node": "Build Delivery Context", "type": "main", "index": 0 }]] },
+      "Build Delivery Context": { "main": [[{ "node": "Create Delivery Customer", "type": "main", "index": 0 }]] },
+      "Create Delivery Customer": { "main": [[{ "node": "Create Delivery Item Group", "type": "main", "index": 0 }]] },
+      "Create Delivery Item Group": { "main": [[{ "node": "Create Delivery Warehouse", "type": "main", "index": 0 }]] },
+      "Create Delivery Warehouse": { "main": [[{ "node": "Create Delivery Item", "type": "main", "index": 0 }]] },
+      "Create Delivery Item": { "main": [[{ "node": "Create Delivery Receipt", "type": "main", "index": 0 }]] },
+      "Create Delivery Receipt": { "main": [[{ "node": "Submit Delivery Receipt", "type": "main", "index": 0 }]] },
+      "Submit Delivery Receipt": { "main": [[{ "node": "Create Delivery Note", "type": "main", "index": 0 }]] },
+      "Create Delivery Note": { "main": [[{ "node": "Submit Delivery Note", "type": "main", "index": 0 }]] },
+      "Submit Delivery Note": { "main": [[{ "node": "Verify Delivery Bin", "type": "main", "index": 0 }]] },
+      "Verify Delivery Bin": { "main": [[{ "node": "Verify Delivery SLE", "type": "main", "index": 0 }]] },
+      "Verify Delivery SLE": { "main": [[{ "node": "Return Safe Delivery Summary", "type": "main", "index": 0 }]] },
+      "Return Safe Delivery Summary": { "main": [[]] }
+    },
+    "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+    "staticData": null,
+    "pinData": {},
+    "meta": { "templateCredsSetupCompleted": true },
+    "tags": []
+  }
+]

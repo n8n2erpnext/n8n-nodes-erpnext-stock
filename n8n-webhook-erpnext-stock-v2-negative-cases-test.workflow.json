@@ -1,0 +1,271 @@
+[
+  {
+    "id": "stockNegativeCasesV2Test01",
+    "name": "ERPNext Stock V2 Negative Cases Test",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erpnext-stock-v2-negative-cases-test",
+          "responseMode": "lastNode",
+          "responseData": "allEntries",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [-1600, 0],
+        "id": "stock-negative-webhook",
+        "name": "POST Webhook",
+        "webhookId": "erpnext-stock-v2-negative-cases-test"
+      },
+      {
+        "parameters": {
+          "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst stamp = Date.now();\nconst runId = `N8N-STOCK-NEG-${stamp}`;\nreturn [{ json: { runId, company: 'Thái Duy Digital', parentWarehouse: 'All Warehouses - TDD', postingDate: today, itemGroup: `${runId} Nhóm negative`, warehouseName: `${runId} Negative WH`, itemCode: `${runId} Negative Item`, disabledItemCode: `${runId} Disabled Item`, batchItemCode: `${runId} Batch Item`, batchId: `${runId}-BATCH-DUP`, badWarehouse: `${runId} Missing WH - TDD`, consumedSerialItem: 'N8N-STOCK-SERIAL-1779097978009 Hàng serial Đặc biệt', consumedSerialWarehouse: 'N8N-STOCK-SERIAL-1779097978009 Serial WH - TDD', consumedSerialNo: 'N8N-STOCK-SERIAL-1779097978009-SN-001', rate: 19 } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [-1380, 0],
+        "id": "build-negative-context",
+        "name": "Build Negative Context"
+      },
+      {
+        "parameters": {
+          "resource": "itemGroup",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_group_name: $node[\"Build Negative Context\"].json.itemGroup, parent_item_group: \"All Item Groups\", is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-1160, 0],
+        "id": "create-negative-item-group",
+        "name": "Create Negative Item Group",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $node[\"Build Negative Context\"].json.warehouseName, parent_warehouse: $node[\"Build Negative Context\"].json.parentWarehouse, company: $node[\"Build Negative Context\"].json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-940, 0],
+        "id": "create-negative-warehouse",
+        "name": "Create Negative Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $node[\"Build Negative Context\"].json.itemCode, item_name: $node[\"Build Negative Context\"].json.itemCode, item_group: $node[\"Create Negative Item Group\"].json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, valuation_rate: $node[\"Build Negative Context\"].json.rate, standard_rate: $node[\"Build Negative Context\"].json.rate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-720, 0],
+        "id": "create-negative-item",
+        "name": "Create Negative Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Issue\", company: $node[\"Build Negative Context\"].json.company, posting_date: $node[\"Build Negative Context\"].json.postingDate, items: [{ item_code: $node[\"Create Negative Item\"].json.name, s_warehouse: $node[\"Create Negative Warehouse\"].json.name, qty: 99, basic_rate: $node[\"Build Negative Context\"].json.rate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-500, 0],
+        "id": "create-over-issue",
+        "name": "Create Over Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $node[\"Create Over Issue\"].json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-280, 0],
+        "id": "submit-over-issue",
+        "name": "Submit Over Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $node[\"Build Negative Context\"].json.company, posting_date: $node[\"Build Negative Context\"].json.postingDate, items: [{ item_code: $node[\"Create Negative Item\"].json.name, t_warehouse: $node[\"Build Negative Context\"].json.badWarehouse, qty: 1, basic_rate: $node[\"Build Negative Context\"].json.rate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-60, 0],
+        "id": "create-wrong-warehouse",
+        "name": "Create Wrong Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $node[\"Build Negative Context\"].json.disabledItemCode, item_name: $node[\"Build Negative Context\"].json.disabledItemCode, item_group: $node[\"Create Negative Item Group\"].json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, disabled: 1, valuation_rate: $node[\"Build Negative Context\"].json.rate, standard_rate: $node[\"Build Negative Context\"].json.rate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [160, 0],
+        "id": "create-disabled-negative-item",
+        "name": "Create Disabled Negative Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $node[\"Build Negative Context\"].json.company, posting_date: $node[\"Build Negative Context\"].json.postingDate, items: [{ item_code: $node[\"Create Disabled Negative Item\"].json.name, t_warehouse: $node[\"Create Negative Warehouse\"].json.name, qty: 1, basic_rate: $node[\"Build Negative Context\"].json.rate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [380, 0],
+        "id": "create-disabled-item-receipt",
+        "name": "Create Disabled Item Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $node[\"Build Negative Context\"].json.company, posting_date: $node[\"Build Negative Context\"].json.postingDate, items: [{ item_code: $node[\"Create Negative Item\"].json.name, qty: 1, basic_rate: $node[\"Build Negative Context\"].json.rate }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [600, 0],
+        "id": "create-missing-warehouse",
+        "name": "Create Missing Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $node[\"Build Negative Context\"].json.batchItemCode, item_name: $node[\"Build Negative Context\"].json.batchItemCode, item_group: $node[\"Create Negative Item Group\"].json.name, stock_uom: \"Unit\", is_stock_item: 1, has_batch_no: 1, valuation_rate: $node[\"Build Negative Context\"].json.rate, standard_rate: $node[\"Build Negative Context\"].json.rate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [820, 0],
+        "id": "create-duplicate-batch-item",
+        "name": "Create Duplicate Batch Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "batch",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ batch_id: $node[\"Build Negative Context\"].json.batchId, item: $node[\"Create Duplicate Batch Item\"].json.name }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1040, 0],
+        "id": "create-first-duplicate-batch",
+        "name": "Create First Duplicate Batch",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "batch",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ batch_id: $node[\"Build Negative Context\"].json.batchId, item: $node[\"Create Duplicate Batch Item\"].json.name }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1260, 0],
+        "id": "create-second-duplicate-batch",
+        "name": "Create Second Duplicate Batch",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Issue\", company: $node[\"Build Negative Context\"].json.company, posting_date: $node[\"Build Negative Context\"].json.postingDate, items: [{ item_code: $node[\"Build Negative Context\"].json.consumedSerialItem, s_warehouse: $node[\"Build Negative Context\"].json.consumedSerialWarehouse, qty: 1, use_serial_batch_fields: 1, serial_no: $node[\"Build Negative Context\"].json.consumedSerialNo }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1480, 0],
+        "id": "create-serial-reuse-issue",
+        "name": "Create Serial Reuse Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $node[\"Create Serial Reuse Issue\"].json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [1700, 0],
+        "id": "submit-serial-reuse-issue",
+        "name": "Submit Serial Reuse Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const read = (name) => { try { return $(name).all().map(i => i.json); } catch { return []; } };\nconst cases = {\n  overIssue: read('Submit Over Issue'),\n  wrongWarehouse: read('Create Wrong Warehouse'),\n  disabledItem: read('Create Disabled Item Receipt'),\n  missingWarehouse: read('Create Missing Warehouse'),\n  duplicateBatch: read('Create Second Duplicate Batch'),\n  serialReuse: read('Submit Serial Reuse Issue')\n};\nconst failedAsExpected = Object.fromEntries(Object.entries(cases).map(([key, rows]) => [key, rows.some(row => row.error || row.message || row.httpCode || row.stack)]));\nconst text = JSON.stringify(cases);\nconst securityFindings = ['api key', 'api_secret', 'authorization', 'token ', 'password'].filter(term => text.toLowerCase().includes(term));\nconst status = Object.values(failedAsExpected).every(Boolean) ? 'passed' : 'failed';\nreturn [{ json: { status, runId: $node['Build Negative Context'].json.runId, failedAsExpected, errors: Object.fromEntries(Object.entries(cases).map(([key, rows]) => [key, rows.map(row => row.error || row.message || row.httpCode || 'no error captured')])), securityFindings } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1920, 0],
+        "id": "return-safe-negative-summary",
+        "name": "Return Safe Negative Summary"
+      }
+    ],
+    "connections": {
+      "POST Webhook": { "main": [[{ "node": "Build Negative Context", "type": "main", "index": 0 }]] },
+      "Build Negative Context": { "main": [[{ "node": "Create Negative Item Group", "type": "main", "index": 0 }]] },
+      "Create Negative Item Group": { "main": [[{ "node": "Create Negative Warehouse", "type": "main", "index": 0 }]] },
+      "Create Negative Warehouse": { "main": [[{ "node": "Create Negative Item", "type": "main", "index": 0 }]] },
+      "Create Negative Item": { "main": [[{ "node": "Create Over Issue", "type": "main", "index": 0 }]] },
+      "Create Over Issue": { "main": [[{ "node": "Submit Over Issue", "type": "main", "index": 0 }]] },
+      "Submit Over Issue": { "main": [[{ "node": "Create Wrong Warehouse", "type": "main", "index": 0 }]] },
+      "Create Wrong Warehouse": { "main": [[{ "node": "Create Disabled Negative Item", "type": "main", "index": 0 }]] },
+      "Create Disabled Negative Item": { "main": [[{ "node": "Create Disabled Item Receipt", "type": "main", "index": 0 }]] },
+      "Create Disabled Item Receipt": { "main": [[{ "node": "Create Missing Warehouse", "type": "main", "index": 0 }]] },
+      "Create Missing Warehouse": { "main": [[{ "node": "Create Duplicate Batch Item", "type": "main", "index": 0 }]] },
+      "Create Duplicate Batch Item": { "main": [[{ "node": "Create First Duplicate Batch", "type": "main", "index": 0 }]] },
+      "Create First Duplicate Batch": { "main": [[{ "node": "Create Second Duplicate Batch", "type": "main", "index": 0 }]] },
+      "Create Second Duplicate Batch": { "main": [[{ "node": "Create Serial Reuse Issue", "type": "main", "index": 0 }]] },
+      "Create Serial Reuse Issue": { "main": [[{ "node": "Submit Serial Reuse Issue", "type": "main", "index": 0 }]] },
+      "Submit Serial Reuse Issue": { "main": [[{ "node": "Return Safe Negative Summary", "type": "main", "index": 0 }]] },
+      "Return Safe Negative Summary": { "main": [[]] }
+    },
+    "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+    "staticData": null,
+    "pinData": {},
+    "meta": { "templateCredsSetupCompleted": true },
+    "tags": []
+  }
+]

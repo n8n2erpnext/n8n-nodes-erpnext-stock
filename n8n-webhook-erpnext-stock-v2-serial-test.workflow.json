@@ -1,0 +1,197 @@
+[
+  {
+    "id": "stockSerialV2Test01",
+    "name": "ERPNext Stock V2 Serial No Test",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erpnext-stock-v2-serial-test",
+          "responseMode": "lastNode",
+          "responseData": "allEntries",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [-1400, 0],
+        "id": "stock-serial-webhook",
+        "name": "POST Webhook",
+        "webhookId": "erpnext-stock-v2-serial-test"
+      },
+      {
+        "parameters": {
+          "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst stamp = Date.now();\nconst runId = `N8N-STOCK-SERIAL-${stamp}`;\nreturn [{ json: { runId, company: 'Thái Duy Digital', parentWarehouse: 'All Warehouses - TDD', postingDate: today, itemGroup: `${runId} Nhóm serial`, warehouseName: `${runId} Serial WH`, itemCode: `${runId} Hàng serial Đặc biệt`, serialA: `${runId}-SN-001`, serialB: `${runId}-SN-002`, receiptQty: 2, issueQty: 1, rate: 53 } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [-1180, 0],
+        "id": "build-serial-context",
+        "name": "Build Serial Context"
+      },
+      {
+        "parameters": {
+          "resource": "itemGroup",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_group_name: $node[\"Build Serial Context\"].json.itemGroup, parent_item_group: \"All Item Groups\", is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-960, 0],
+        "id": "create-serial-item-group",
+        "name": "Create Serial Item Group",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "warehouse",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ warehouse_name: $node[\"Build Serial Context\"].json.warehouseName, parent_warehouse: $node[\"Build Serial Context\"].json.parentWarehouse, company: $node[\"Build Serial Context\"].json.company, is_group: 0 }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-740, 0],
+        "id": "create-serial-warehouse",
+        "name": "Create Serial Warehouse",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "item",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ item_code: $node[\"Build Serial Context\"].json.itemCode, item_name: $node[\"Build Serial Context\"].json.itemCode, item_group: $node[\"Create Serial Item Group\"].json.name, stock_uom: \"Unit\", is_stock_item: 1, is_purchase_item: 1, is_sales_item: 1, has_serial_no: 1, valuation_rate: $node[\"Build Serial Context\"].json.rate, standard_rate: $node[\"Build Serial Context\"].json.rate }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-520, 0],
+        "id": "create-serial-item",
+        "name": "Create Serial Item",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Receipt\", company: $node[\"Build Serial Context\"].json.company, posting_date: $node[\"Build Serial Context\"].json.postingDate, items: [{ item_code: $node[\"Create Serial Item\"].json.name, t_warehouse: $node[\"Create Serial Warehouse\"].json.name, qty: $node[\"Build Serial Context\"].json.receiptQty, basic_rate: $node[\"Build Serial Context\"].json.rate, use_serial_batch_fields: 1, serial_no: `${$node[\"Build Serial Context\"].json.serialA}\\n${$node[\"Build Serial Context\"].json.serialB}` }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-300, 0],
+        "id": "create-serial-receipt",
+        "name": "Create Serial Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $node[\"Create Serial Receipt\"].json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [-80, 0],
+        "id": "submit-serial-receipt",
+        "name": "Submit Serial Receipt",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "create",
+          "dataJson": "={{ JSON.stringify({ stock_entry_type: \"Material Issue\", company: $node[\"Build Serial Context\"].json.company, posting_date: $node[\"Build Serial Context\"].json.postingDate, items: [{ item_code: $node[\"Create Serial Item\"].json.name, s_warehouse: $node[\"Create Serial Warehouse\"].json.name, qty: $node[\"Build Serial Context\"].json.issueQty, basic_rate: $node[\"Build Serial Context\"].json.rate, use_serial_batch_fields: 1, serial_no: $node[\"Build Serial Context\"].json.serialA }] }) }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [140, 0],
+        "id": "create-serial-issue",
+        "name": "Create Serial Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockEntry",
+          "apiVersion": "v2",
+          "operation": "submit",
+          "documentName": "={{ $node[\"Create Serial Issue\"].json.name }}"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [360, 0],
+        "id": "submit-serial-issue",
+        "name": "Submit Serial Issue",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "bin",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,actual_qty,valuation_rate,stock_value",
+          "filtersJson": "={{ JSON.stringify({ item_code: $node[\"Create Serial Item\"].json.name, warehouse: $node[\"Create Serial Warehouse\"].json.name }) }}",
+          "returnAll": false,
+          "limit": 5,
+          "orderBy": "modified desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [580, 0],
+        "id": "verify-serial-bin",
+        "name": "Verify Serial Bin",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "resource": "stockLedgerEntry",
+          "apiVersion": "v1",
+          "operation": "getMany",
+          "fields": "name,item_code,warehouse,voucher_type,voucher_no,actual_qty,qty_after_transaction,is_cancelled",
+          "filtersJson": "={{ JSON.stringify({ item_code: $node[\"Create Serial Item\"].json.name }) }}",
+          "returnAll": false,
+          "limit": 20,
+          "orderBy": "posting_date desc, posting_time desc"
+        },
+        "type": "n8n-nodes-erpnext-stock.erpNextStock",
+        "typeVersion": 1,
+        "position": [800, 0],
+        "id": "verify-serial-sle",
+        "name": "Verify Serial SLE",
+        "credentials": { "erpNextApi": { "id": "9hFY985G0WpX5Xyt", "name": "ERPNext account" } }
+      },
+      {
+        "parameters": {
+          "jsCode": "const ctx = $node['Build Serial Context'].json;\nconst receipt = $node['Submit Serial Receipt'].json;\nconst issue = $node['Submit Serial Issue'].json;\nconst bin = $('Verify Serial Bin').all().map(i => i.json);\nconst sle = $('Verify Serial SLE').all().map(i => i.json);\nconst expectedQty = ctx.receiptQty - ctx.issueQty;\nconst text = JSON.stringify({ ctx, receipt, issue, bin, sle });\nconst securityFindings = ['api key', 'api_secret', 'authorization', 'token ', 'password'].filter(term => text.toLowerCase().includes(term));\nconst hasReceiptLedger = sle.some(row => row.voucher_no === $node['Create Serial Receipt'].json.name && Number(row.actual_qty) === ctx.receiptQty);\nconst hasIssueLedger = sle.some(row => row.voucher_no === $node['Create Serial Issue'].json.name && Number(row.actual_qty) === -ctx.issueQty && Number(row.qty_after_transaction) === expectedQty);\nconst status = Number(receipt.docstatus) === 1 && Number(issue.docstatus) === 1 && Number(bin[0]?.actual_qty) === expectedQty && hasReceiptLedger && hasIssueLedger ? 'passed' : 'failed';\nreturn [{ json: { status, runId: ctx.runId, item: $node['Create Serial Item'].json.name, serialReceived: [ctx.serialA, ctx.serialB], serialIssued: ctx.serialA, warehouse: $node['Create Serial Warehouse'].json.name, receipt: $node['Create Serial Receipt'].json.name, receiptDocstatus: receipt.docstatus, issue: $node['Create Serial Issue'].json.name, issueDocstatus: issue.docstatus, binActualQty: bin[0]?.actual_qty, serialLedgerRows: sle.length, serialLedgerActualQty: sle.map(row => ({ voucher_no: row.voucher_no, actual_qty: row.actual_qty, qty_after_transaction: row.qty_after_transaction })), serialTrackingNote: 'ERPNext v16 stores serial detail in Serial and Batch Bundle/Entry; DB verification records exact serial_no rows.', securityFindings } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1020, 0],
+        "id": "return-safe-serial-summary",
+        "name": "Return Safe Serial Summary"
+      }
+    ],
+    "connections": {
+      "POST Webhook": { "main": [[{ "node": "Build Serial Context", "type": "main", "index": 0 }]] },
+      "Build Serial Context": { "main": [[{ "node": "Create Serial Item Group", "type": "main", "index": 0 }]] },
+      "Create Serial Item Group": { "main": [[{ "node": "Create Serial Warehouse", "type": "main", "index": 0 }]] },
+      "Create Serial Warehouse": { "main": [[{ "node": "Create Serial Item", "type": "main", "index": 0 }]] },
+      "Create Serial Item": { "main": [[{ "node": "Create Serial Receipt", "type": "main", "index": 0 }]] },
+      "Create Serial Receipt": { "main": [[{ "node": "Submit Serial Receipt", "type": "main", "index": 0 }]] },
+      "Submit Serial Receipt": { "main": [[{ "node": "Create Serial Issue", "type": "main", "index": 0 }]] },
+      "Create Serial Issue": { "main": [[{ "node": "Submit Serial Issue", "type": "main", "index": 0 }]] },
+      "Submit Serial Issue": { "main": [[{ "node": "Verify Serial Bin", "type": "main", "index": 0 }]] },
+      "Verify Serial Bin": { "main": [[{ "node": "Verify Serial SLE", "type": "main", "index": 0 }]] },
+      "Verify Serial SLE": { "main": [[{ "node": "Return Safe Serial Summary", "type": "main", "index": 0 }]] },
+      "Return Safe Serial Summary": { "main": [[]] }
+    },
+    "settings": { "executionOrder": "v1", "binaryMode": "separate" },
+    "staticData": null,
+    "pinData": {},
+    "meta": { "templateCredsSetupCompleted": true },
+    "tags": []
+  }
+]
