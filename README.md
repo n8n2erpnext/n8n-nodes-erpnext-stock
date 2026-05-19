@@ -9,6 +9,44 @@ Community n8n node package for ERPNext/Frappe Stock v15-v16.
 
 This package is part of the `n8n2erpnext` ecosystem. It focuses on real inventory movement, warehouse balances, batch/serial traceability, Bin verification, and Stock Ledger Entry verification.
 
+## Connected Ecosystem Coverage
+
+Stock is the operational center of the `n8n2erpnext` ERP ecosystem. The live workflow suite proves that Buying, Stock, Selling, and Accounting work together as one business system, not as separate community nodes.
+
+Two end-to-end enterprise workflows are included and live-tested:
+
+- Standard Product Lifecycle: Supplier -> Purchase Receipt -> inventory increase -> Purchase Invoice -> Customer Sale -> Sales Invoice `update_stock = 1` -> inventory decrease -> final Bin/SLE/accounting verification.
+- Exception / After-Sales Lifecycle: sale -> return credit note -> warranty warehouse -> defective warehouse -> repair/virtual workshop -> disposal -> final Bin/SLE/accounting verification.
+
+The suite also verifies cross-module document protection:
+
+- Linked Purchase Invoice blocks unsafe Purchase Receipt cancellation.
+- Linked Sales Invoice blocks unsafe Delivery Note cancellation.
+- Non-stock fee/rebate invoices do not create Stock Ledger Entry rows.
+
+This positions the project as ERPNext operational inventory workflow validation focused on Retail, Distribution, FMCG/Fresh basics, and Manufacturing basics.
+
+## Live-Tested Status
+
+This package has been live-tested end to end on the project ERPNext/Frappe test environment:
+
+| Area | Status |
+| --- | --- |
+| ERPNext/Frappe target | Live-tested on ERPNext v16/Frappe v16 behavior |
+| n8n runtime | Live-tested on self-hosted n8n `2.20.7-exp.0` |
+| Infrastructure | Live-tested through LXD ERPNext container at `http://10.192.135.2:8001` with host header `erp.thaiduy.digital` |
+| API coverage | Live-tested with Frappe API v1 read workflows and API v2 document workflows |
+| Ecosystem coverage | Buying -> Stock -> Selling -> Accounting end-to-end workflows |
+| Core stock lifecycle | Material Receipt, Material Transfer, Stock Reconciliation, Delivery Note, Bin, and Stock Ledger Entry |
+| Retail and after-sales coverage | Sale, return credit note, warranty, defective stock, repair/virtual workshop, disposal, exchange, and return fee |
+| Manufacturing coverage | BOM, Work Order, WIP transfer, Manufacture Stock Entry, Finished Goods, and finished-goods sale |
+| FMCG/Fresh coverage | Batch expiry, batch sale, spoilage/damage, vendor claim warehouse, claim closure, and non-stock fee/rebate |
+| Negative coverage | Over-issue, wrong warehouse, disabled item, missing warehouse, duplicate Batch/Serial, linked-document cancel locks |
+| Security response policy | Public webhook responses were allowlisted summaries; `securityFindings: []` |
+| Cleanup | Temporary workflows were deactivated and verified as `404 Active version not found` |
+
+The live verification used traceable demo records in the ERPNext LXD test instance. The README intentionally includes test infrastructure routing values and document IDs, but no API keys, API secrets, Authorization headers, database passwords, npm tokens, or credential material.
+
 ## Tested Operational Coverage
 
 Stock is intentionally tested more deeply than Buying and Selling because submitted Stock documents change real inventory balances and ledger rows.
@@ -317,6 +355,8 @@ The repository includes importable n8n workflow JSON artifacts used for live val
 - `n8n-webhook-erpnext-stock-v2-retail-exchange-fee-test.workflow.json`
 - `n8n-webhook-erpnext-stock-v2-manufacturing-basic-test.workflow.json`
 - `n8n-webhook-erpnext-stock-v2-fmcg-fresh-basic-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-e2e-standard-product-lifecycle-test.workflow.json`
+- `n8n-webhook-erpnext-stock-v2-e2e-exception-return-warranty-lifecycle-test.workflow.json`
 
 Public webhook responses for write-heavy tests must be allowlisted summaries and must not expose API keys, API secrets, Authorization headers, tokens, passwords, or raw upstream credential material.
 
