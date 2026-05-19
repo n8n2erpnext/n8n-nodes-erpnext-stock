@@ -1,6 +1,6 @@
 # n8n-nodes-erpnext-stock
 
-[![Status](https://img.shields.io/badge/status-live%20workflow%20tested-171717)](#tested-operational-coverage)
+[![Live tested](https://img.shields.io/badge/live--tested-ERPNext%20v16%20%2F%20n8n%20self--hosted%20%2F%20LXD%20%2F%20API%20v2-171717)](#live-tested-status)
 [![Runtime audit](https://img.shields.io/badge/runtime%20audit-0%20vulnerabilities-2E7D5F)](#development)
 [![Node checks](https://img.shields.io/badge/n8n%20node%20lint%20%2B%20build-passing-2E7D5F)](#development)
 [![Package](https://img.shields.io/badge/package-0.1.0-2490EF)](./package.json)
